@@ -1,0 +1,6 @@
+NH4_fraction_ver1	'NH4_frac'
+NH4_input_ver1	'NH4_input'
+Ninput_date_random_ver1	N_input_date
+Ninput_date_ver1	N_input_date
+NO3_input_ver1	NO3_input
+TN_input_1961_2010	Annual_N_fertilizer_rates_as_country_average

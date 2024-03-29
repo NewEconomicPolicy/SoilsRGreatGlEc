@@ -1,0 +1,23 @@
+16          # Number of crops
+5           # CROP Spring Wheat		sequence 1
+60          # Timesteps to sowing date from 01/01/01
+93.09       # Crop N uptake at harvest (0=calculate internally) [kg N/ha]
+181         # Timesteps to harvest date from 01/01/01
+8.0         # Expected yield [t/ha]
+0           # Crop residues incorporated (0=No, 1=Yes
+2           # Number of fertiliser applications
+0           # Number of organic manure applications
+23.27       # Amount of fertiliser applied [kg N/ha]
+59          # Timesteps to fertiliser application
+50          # Percentage NO3
+50          # Percentage NH4
+0           # Percentage urea
+0           # Does fert.contain ammonium salts other than ammonium sulphate (0=No, 1=Yes)
+0           # Has fertiliser been labelled (0=No, 1=Yes)
+69.82       # Amount of fertiliser applied [kg N/ha]
+88          # Timesteps to fertiliser application
+50          # Percentage NO3
+50          # Percentage NH4
+0           # Percentage urea
+0           # Does fert.contain ammonium salts other than ammonium sulphate (0=No, 1=Yes)
+0           # Has fertiliser been labelled (0=No, 1=Yes)
