@@ -1,2 +1,3 @@
-# SoilsRGreatGlEcSpApp
-site specific Global Ecosse variation for Soils-R-GGREAT project, PI Sylvia Vetter
+# SoilsRGreatGlEcSp
+site specific Global Ecosse variation for Soils-R-GGREAT project, generates ECOSSE site-specific cells
+PI Sylvia Vetter
