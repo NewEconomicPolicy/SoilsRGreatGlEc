@@ -67,7 +67,7 @@ def commonSection(form, grid, irow):
     fut_syears = range(start_year, end_year)
     fut_eyears = list(range(start_year + 1, end_year + 1))
 
-    scenarios = list(['A1B_MG1','A2_MG1','B1_MG1','B2_MG1'])  #
+    scenarios = list(['126', '245', '370', '585'])  #
 
     luTypes = {}; lu_type_abbrevs = {}
     for lu_type, abbrev, ilu in zip(

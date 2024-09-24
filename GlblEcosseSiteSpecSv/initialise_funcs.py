@@ -70,7 +70,7 @@ def initiation(form):
     # check weather data
     # ==================
     read_weather_dsets_detail(form)
-    form.wthr_rsrces_generic = list(['CRU'])
+    form.wthr_rsrces_generic = list(['WrldClim'])
 
     form.parms_settings = _read_site_specific_parms()
 
