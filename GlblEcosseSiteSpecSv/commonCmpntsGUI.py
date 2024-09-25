@@ -54,48 +54,83 @@ def calculate_grid_cell(form, granularity = 120):
 
     return
 
-def commonSection(form, grid, irow):
-    
-    # TODO: must improve some of these could be transferred to the settings file
-    start_year = form.wthr_sets['CRU_hist']['year_start']
-    end_year   = form.wthr_sets['CRU_hist']['year_end']
+def _fetch_wthr_detail(form):
+    """
+
+    """
+    generic_rsrce = form.wthr_rsrces_generic
+    rsrce_hist = generic_rsrce + '_hist'
+
+    # so far only CRU and WrldClim are permitted
+    # ==========================================
+    if generic_rsrce == 'WrldClim':
+        rsrce_fut = 'ACCESS-CM2_585'
+    else:
+        rsrce_fut = 'ClimGen_A1B'
+
+    start_year = form.wthr_sets[rsrce_hist]['year_start']
+    end_year   = form.wthr_sets[rsrce_hist]['year_end']
     hist_syears = list(range(start_year, end_year))
     hist_eyears = list(range(start_year + 1, end_year + 1))
 
-    start_year = form.wthr_sets['ClimGen_A1B']['year_start']
-    end_year = form.wthr_sets['ClimGen_A1B']['year_end']
+    start_year = form.wthr_sets[rsrce_fut]['year_start']
+    end_year = form.wthr_sets[rsrce_fut]['year_end']
     fut_syears = range(start_year, end_year)
     fut_eyears = list(range(start_year + 1, end_year + 1))
 
-    scenarios = list(['126', '245', '370', '585'])  #
+    return hist_syears, hist_eyears, fut_syears, fut_eyears
 
-    luTypes = {}; lu_type_abbrevs = {}
+def _fetch_land_use_types():
+    """
+
+    """
+    luTypes = {};
+    lu_type_abbrevs = {}
     for lu_type, abbrev, ilu in zip(
-                    ['Arable','Forestry','Miscanthus','Grassland','Semi-natural', 'SRC', 'Rapeseed', 'Sugar cane'],
-                    ['ara',   'for',      'mis',      'gra',      'nat',          'src', 'rps',      'sgc'],
-                    [1,        3,          5,          2,          4,              6,     7,          7]):
+            ['Arable', 'Forestry', 'Miscanthus', 'Grassland', 'Semi-natural', 'SRC', 'Rapeseed', 'Sugar cane'],
+            ['ara', 'for', 'mis', 'gra', 'nat', 'src', 'rps', 'sgc'],
+            [1, 3, 5, 2, 4, 6, 7, 7]):
         luTypes[lu_type] = ilu
         lu_type_abbrevs[lu_type] = abbrev
 
-    form.land_use_types = luTypes
-    form.lu_type_abbrevs = lu_type_abbrevs
+    return luTypes, lu_type_abbrevs
 
-    # line 9: resources
-    # ===================
+def commonSection(form, grid, irow):
+    """
+
+    """
+    hist_syears, hist_eyears, fut_syears, fut_eyears = _fetch_wthr_detail(form)
+    form.land_use_types,  form.lu_type_abbrevs = _fetch_land_use_types()
+
+    # =========
+    icol = 0
     lbl10w = QLabel('Weather resource:')
     lbl10w.setAlignment(Qt.AlignRight)
     helpText = 'permissable weather dataset resources are limited to CRU only'
     lbl10w.setToolTip(helpText)
-    grid.addWidget(lbl10w, irow, 0)
+    grid.addWidget(lbl10w, irow, icol)
 
+    icol += 1
+    lbl10x = QLabel(form.weather_rsrce_generic)
+    lbl10x.setToolTip(helpText)
+    grid.addWidget(lbl10x, irow, icol)
+
+    icol += 1
+    lbl10y = QLabel('GCM:')
+    lbl10y.setAlignment(Qt.AlignRight)
+    lbl10y.setToolTip(helpText)
+    grid.addWidget(lbl10y, irow, icol)
+
+    icol += 1
     combo10w = QComboBox()
-    for wthr_resource in form.wthr_rsrces_generic:
+    for wthr_resource in form.wthr_gcms:
         combo10w.addItem(wthr_resource)
     form.combo10w = combo10w
-    grid.addWidget(combo10w, irow, 1)
+    grid.addWidget(combo10w, irow, icol)
 
-    # line 9: scenarios
-    # =================
+    # scenarios
+    # =========
+    icol += 1
     lbl10 = QLabel('Climate Scenario:')
     lbl10.setAlignment(Qt.AlignRight)
     helpText = 'Ecosse requires future average monthly precipitation and temperature derived from climate models.\n' \
@@ -103,17 +138,18 @@ def commonSection(form, grid, irow):
         + ' and the Tyndall Centre. See: http://www.cru.uea.ac.uk/~timo/climgen/'
 
     lbl10.setToolTip(helpText)
-    grid.addWidget(lbl10, irow, 2)
+    grid.addWidget(lbl10, irow, icol)
 
+    icol += 1
     combo10 = QComboBox()
-    for scen in scenarios:
+    for scen in form.wthr_scenarios:
         combo10.addItem(str(scen))
     combo10.setFixedWidth(80)
     form.combo10 = combo10
-    grid.addWidget(combo10, irow, 3)
+    grid.addWidget(combo10, irow, icol)
 
-    # line 10
-    # =======
+    # next line
+    # =========
     irow += 1
     lbl09s = QLabel('Historic start year:')
     lbl09s.setAlignment(Qt.AlignRight)

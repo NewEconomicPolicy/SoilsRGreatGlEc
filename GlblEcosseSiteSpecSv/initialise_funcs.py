@@ -38,6 +38,9 @@ WARNING_STR = '*** Warning *** '
 
 MAX_COUNTRIES = 350
 
+SETTINGS_SETUP_LIST = ['config_dir', 'fname_png', 'log_dir', 'n_inputs_xls', 'proj_path', 'regions_fname',
+                       'sims_dir', 'weather_dir', 'shp_dir', 'shp_dir_gadm', 'python_exe', 'runsites_py',
+                       'weather_resource']
 MIN_GUI_LIST = ['aveWthrFlag', 'autoRunEcFlag', 'bbox', 'cultivJsonFname', 'daily_mode', 'manureFlag', 'regionIndx',
                     'yearFrom', 'rotaJsonFname', 'rotationFlag', 'wthrRsrce', 'maxCells', 'allRegionsFlag',
                                                                                 'perenCrops', 'autoRunEcFlag']
@@ -70,7 +73,12 @@ def initiation(form):
     # check weather data
     # ==================
     read_weather_dsets_detail(form)
-    form.wthr_rsrces_generic = list(['WrldClim'])
+    wthr_rsrce_generic = form.settings['weather_resource']
+    form.wthr_rsrces_generic = wthr_rsrce_generic
+    if wthr_rsrce_generic == 'WrldClim':
+        form.wthr_scenarios = list(['126', '245', '370', '585'])
+    elif wthr_rsrce_generic == 'CRU':
+        form.wthr_scenarios = list(['A1B_MG1', 'A2_MG1', 'B1_MG1', 'B2_MG1'])
 
     form.parms_settings = _read_site_specific_parms()
 
@@ -239,12 +247,12 @@ def _read_setup_file(applic_str):
         exit(0)
 
     print('Read setup file ' + setup_file)
-    settings_list = ['config_dir', 'fname_png', 'log_dir', 'n_inputs_xls', 'proj_path', 'regions_fname',
-                     'sims_dir', 'weather_dir', 'shp_dir', 'shp_dir_gadm', 'python_exe', 'runsites_py']
+
     # validate setup file
     # ===================
-    for key in settings_list:
-        if key not in settings['setup']:
+    grp = 'setup'
+    for key in SETTINGS_SETUP_LIST:
+        if key not in settings[grp]:
             print(ERROR_STR + 'setting {} is required in setup file {} '.format(key, setup_file))
             sleep(sleepTime)
             exit(0)
@@ -252,20 +260,14 @@ def _read_setup_file(applic_str):
     # initialise vars
     # ===============
     weather_dir = ''
-    grp = 'setup'
-    try:
-        config_dir = settings[grp]['config_dir']
-        hwsd_dir = settings[grp]['hwsd_dir']
-        log_dir = settings[grp]['log_dir']
-        proj_path = settings[grp]['proj_path']
-        regions_fname = settings[grp]['regions_fname']
-        sims_dir = settings[grp]['sims_dir']
-        weather_dir = settings[grp]['weather_dir']
-        n_inputs_xls = settings[grp]['n_inputs_xls']
-    except KeyError:
-        print(ERROR_STR + 'reading {} in group: {}'.format(setup_file, grp))
-        sleep(sleepTime)
-        exit(0)
+
+    config_dir = settings[grp]['config_dir']
+    hwsd_dir = settings[grp]['hwsd_dir']
+    log_dir = settings[grp]['log_dir']
+    proj_path = settings[grp]['proj_path']
+    regions_fname = settings[grp]['regions_fname']
+    sims_dir = settings[grp]['sims_dir']
+    weather_dir = settings[grp]['weather_dir']
 
     # make sure directories exist for configuration and log files
     # ===========================================================
