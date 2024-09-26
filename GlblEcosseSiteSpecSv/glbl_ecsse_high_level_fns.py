@@ -20,8 +20,8 @@ from hwsd_bil import HWSD_bil
 from hwsd_soil_class import HWSD_soil_defn
 
 from getClimGenNC import ClimGenNC
-from getClimGenFns import (check_clim_nc_limits, fetch_CRU_data, open_wthr_NC_sets, get_wthr_nc_coords,
-                                                                                        join_hist_fut_to_sim_wthr)
+from getClimGenFns import (check_clim_nc_limits, fetch_WrldClim_data, open_wthr_NC_sets, get_wthr_nc_coords,
+                           join_hist_fut_to_sim_wthr)
 from make_site_spec_files_classes import MakeSiteFiles
 from prepare_ecosse_files import make_ecosse_files
 from glbl_ecss_cmmn_funcs import write_study_definition_file
@@ -169,7 +169,7 @@ def generate_banded_sims(form, region, crop_name):
 
     # weather choice - CRU is default, check requested AOI coordinates against weather dataset extent
     # ===============================================================================================
-    if not check_clim_nc_limits(form, form.setup['bbox']):
+    if not check_clim_nc_limits(form, form.setup['bbox'], form.wthr_rsrces_generic):
         return
 
     climgen  = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year)
@@ -248,14 +248,10 @@ def generate_banded_sims(form, region, crop_name):
 
             # Get future and historic weather data
             # ====================================
-            if climgen.wthr_rsrce == 'CRU':
-                pettmp_hist = fetch_CRU_data(form.lgr, lat, lon, climgen, hist_wthr_dsets,
-                                                                        hist_lat_indx, hist_lon_indx, hist_flag = True)
-                pettmp_fut =  fetch_CRU_data(form.lgr, lat, lon, climgen, fut_wthr_dsets,
-                                                                        fut_lat_indx, fut_lon_indx)
-            else:
-                pettmp_fut = [] ; pettmp_hist = []
-
+            pettmp_hist = fetch_WrldClim_data(form.lgr, lat, lon, climgen, hist_wthr_dsets,
+                                              hist_lat_indx, hist_lon_indx, hist_flag = True)
+            pettmp_fut =  fetch_WrldClim_data(form.lgr, lat, lon, climgen, fut_wthr_dsets,
+                                              fut_lat_indx, fut_lon_indx)
             if pettmp_fut is None or pettmp_hist is None:
                 nskipped += 1
                 continue

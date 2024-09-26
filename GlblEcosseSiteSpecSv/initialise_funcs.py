@@ -79,6 +79,10 @@ def initiation(form):
         form.wthr_scenarios = list(['126', '245', '370', '585'])
     elif wthr_rsrce_generic == 'CRU':
         form.wthr_scenarios = list(['A1B_MG1', 'A2_MG1', 'B1_MG1', 'B2_MG1'])
+    else:
+        print(ERROR_STR + wthr_rsrce_generic + ' is not an allowed weather resource - must be CRU or WrldClim')
+        sleep(sleepTime)
+        exit(0)
 
     form.parms_settings = _read_site_specific_parms()
 
@@ -98,7 +102,7 @@ def initiation(form):
         if isfile(dflt_ecosse_fname):
             form.dflt_ecosse_fnames[ecosse_fname.lower()] = dflt_ecosse_fname
         else:
-            print('{} file must exist'.format(dflt_ecosse_fname))
+            print(ERROR_STR + '{} file must exist'.format(dflt_ecosse_fname))
             sleep(sleepTime)
             exit(0)
 

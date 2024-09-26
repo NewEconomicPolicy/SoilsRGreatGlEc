@@ -391,6 +391,20 @@ class Form(QWidget):
 
         self.changeRegion()  # populates lat/long boxes
 
+    def reloadClimScenarios(self):
+        """
+        determine scenarios for this GCM
+        """
+        gcm = self.combo10w.currentText()
+        scnrs = []
+        for wthr_set in self.weather_set_linkages['WrldClim']:
+            this_gcm, scnr = wthr_set.split('_')
+            if this_gcm == gcm:
+                scnrs.append(scnr)
+
+        self.combo10.clear()
+        self.combo10.addItems(scnrs)
+
     def checkMappingsClicked(self):
 
         check_cntry_prvnc_mappings(self)

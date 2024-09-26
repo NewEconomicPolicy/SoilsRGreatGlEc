@@ -61,49 +61,24 @@ class ClimGenNC(object,):
         """
         func_name =  __prog__ +  ' ClimGenNC __init__'
 
-        # determine user choices
-        # ======================
-        if hasattr(form, 'w_mnthly'):
-            if form.w_mnthly.isChecked():   # monthly timestep
-                sim_mnthly_flag = True
-            else:
-                sim_mnthly_flag = False     # daily timestep
-
-            wthr_rsrce = form.combo10w.currentText()
-            ave_wthr_flag = form.w_ave_wthr.isChecked()
-            fut_clim_scen = form.combo10.currentText()
-            hist_start_year = int(form.combo09s.currentText())
-            hist_end_year = int(form.combo09e.currentText())
-        else:
+        if form.w_mnthly.isChecked():   # monthly timestep
             sim_mnthly_flag = True
-            wthr_rsrce = form.weather_resource
-            ave_wthr_flag = False
-            fut_clim_scen = form.scenario
-            hist_start_year = form.hist_strt_year
-            hist_end_year = form.hist_end_year
-
-        if wthr_rsrce != 'CRU':
-            raise Exception('Only CRU allowed when creating ClimGenNC object')
-
-        # African Monsoon Multidisciplinary Analysis (AMMA) 2050 datasets
-        # ===============================================================
-        if wthr_rsrce == 'CRU':
-            wthr_set_key = 'ClimGen_' + fut_clim_scen
-            if wthr_set_key not in form.wthr_sets:
-                print('key {} not in weather sets in function {} - cannot continue'.format(wthr_set_key, func_name))
-                return
-            hist_wthr_set = form.wthr_sets['CRU_hist']
-            fut_wthr_set  = form.wthr_sets['ClimGen_' + fut_clim_scen]
-        elif wthr_rsrce == 'NCAR_CCSM4':
-            hist_wthr_set = form.wthr_sets['NCAR_CCSM4']
-            fut_wthr_set  = form.wthr_sets['NCAR_CCSM4']
         else:
-            print('weather resource ' + wthr_rsrce + ' not recognised in ' + func_name + ' - cannot continue')
-            return
+            sim_mnthly_flag = False     # daily timestep
+
+        wthr_rsrce = form.combo10w.currentText()
+        ave_wthr_flag = form.w_ave_wthr.isChecked()
+        fut_clim_scen = form.combo10.currentText()
+        hist_start_year = int(form.combo09s.currentText())
+        hist_end_year = int(form.combo09e.currentText())
+
+        # ===============================================================
+        hist_wthr_set = form.wthr_sets['WrldClim_hist']
+        fut_wthr_set  = form.wthr_sets[wthr_rsrce + '_' + fut_clim_scen]
 
         # create weather resource directory if necessary
         # ==============================================
-        region_wthr_dir = form.setup['region_wthr_dir'] + wthr_rsrce.title() + fut_clim_scen
+        region_wthr_dir = form.setup['region_wthr_dir'] + wthr_rsrce + '_' + fut_clim_scen
         clim_dir = normpath(join(form.setup['sims_dir'], region_wthr_dir))
         if not isdir(clim_dir):
             mkdir(clim_dir)
