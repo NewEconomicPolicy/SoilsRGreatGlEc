@@ -64,7 +64,7 @@ def _fetch_wthr_detail(form):
     # so far only CRU and WrldClim are permitted
     # ==========================================
     if generic_rsrce == 'WrldClim':
-        rsrce_fut = 'ACCESS-CM2_585'
+        rsrce_fut = 'UKESM1-0-LL_126'
     else:
         rsrce_fut = 'ClimGen_A1B'
 

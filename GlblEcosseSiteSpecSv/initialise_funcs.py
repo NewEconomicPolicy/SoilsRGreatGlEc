@@ -7,7 +7,6 @@
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
 """
-
 __prog__ = 'initialise_funcs.py'
 __version__ = '0.0.0'
 
@@ -37,6 +36,9 @@ ERROR_STR = '*** Error *** '
 WARNING_STR = '*** Warning *** '
 
 MAX_COUNTRIES = 350
+
+RUN_SETTINGS_SETUP_LIST =[ 'completed_max', 'check_space_every', 'kml_flag', 'last_gcm_only_flag',
+                                    'max_countries', 'space_remaining_limit', 'soil_test_flag', 'zeros_file']
 
 SETTINGS_SETUP_LIST = ['config_dir', 'fname_png', 'log_dir', 'n_inputs_xls', 'proj_path', 'regions_fname',
                        'sims_dir', 'weather_dir', 'shp_dir', 'shp_dir_gadm', 'python_exe', 'runsites_py',
@@ -254,6 +256,13 @@ def _read_setup_file(applic_str):
 
     # validate setup file
     # ===================
+    grp = 'run_settings'
+    for key in RUN_SETTINGS_SETUP_LIST:
+        if key not in settings[grp]:
+            print(ERROR_STR + 'setting {} is required in setup file {} '.format(key, setup_file))
+            sleep(sleepTime)
+            exit(0)
+
     grp = 'setup'
     for key in SETTINGS_SETUP_LIST:
         if key not in settings[grp]:
@@ -261,10 +270,12 @@ def _read_setup_file(applic_str):
             sleep(sleepTime)
             exit(0)
 
+    # TODO: fix this anomaly
+    # ======================
+    settings[grp]['last_gcm_only_flag'] = settings['run_settings']['last_gcm_only_flag']
+
     # initialise vars
     # ===============
-    weather_dir = ''
-
     config_dir = settings[grp]['config_dir']
     hwsd_dir = settings[grp]['hwsd_dir']
     log_dir = settings[grp]['log_dir']
@@ -369,8 +380,10 @@ def _write_default_setup_file(setup_file):
         'run_settings': {
             'completed_max': 5000000000,
             'check_space_every': 10,
-            'space_remaining_limit': 1270,
             'kml_flag': True,
+            'last_gcm_only_flag': True,
+            "max_countries": 350,
+            'space_remaining_limit': 1270,
             'soil_test_flag': False,
             'zeros_file': False
         }
