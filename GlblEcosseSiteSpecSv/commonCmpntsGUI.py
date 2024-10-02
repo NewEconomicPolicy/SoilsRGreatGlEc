@@ -122,9 +122,11 @@ def commonSection(form, grid, irow):
     grid.addWidget(lbl10y, irow, icol)
 
     icol += 1
+    WDGT_SIZE_100 = 100
     combo10w = QComboBox()
     for wthr_resource in form.wthr_gcms:
         combo10w.addItem(wthr_resource)
+    combo10w.setFixedWidth(WDGT_SIZE_100)
     combo10w.currentIndexChanged[str].connect(form.reloadClimScenarios)
     form.combo10w = combo10w
     grid.addWidget(combo10w, irow, icol)
