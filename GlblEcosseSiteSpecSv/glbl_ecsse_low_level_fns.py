@@ -532,3 +532,18 @@ def update_progress(last_time, ncompleted, nskipped, ntotal_grow, ngrowing, nno_
         last_time = new_time
 
     return last_time
+
+def update_wthr_progress(last_time, ncompleted, nskipped, ntotal_grow, ngrowing, nno_grow, region):
+    """
+    Update progress bar
+    """
+    new_time = time()
+    if new_time - last_time > 5:
+        mess = '\rCompleted: {:=6d} Growing cells: {:=6d} No grow cells: {:=6d}'.format(ncompleted, ngrowing, nno_grow)
+        mess += ' Skipped: {:=5d} Region: {:15s}'.format(nskipped, region)
+        mess += ' Remaining: {:=6d}'.format(ntotal_grow - ncompleted)
+        stdout.flush()
+        stdout.write(mess)
+        last_time = new_time
+
+    return last_time

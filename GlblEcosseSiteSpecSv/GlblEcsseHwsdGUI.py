@@ -27,6 +27,7 @@ from shape_funcs import format_bbox, calculate_area
 
 from glbl_ecsse_high_level_test_fns import generate_banded_sims_test, all_generate_banded_sims_test
 from glbl_ecsse_low_level_test_fns import check_cntry_prvnc_mappings
+from wthr_generation_fns import generate_all_weather
 
 STD_FLD_SIZE = 80
 STD_BTN_SIZE = 100
@@ -354,7 +355,15 @@ class Form(QWidget):
         # test actions
         # ============
         irow += 1
-        icol = 6
+        icol = 0
+        w_wthr_only = QPushButton('Create weather')
+        helpText = 'Generate weather only'
+        w_wthr_only.setToolTip(helpText)
+        grid.addWidget(w_wthr_only, irow, icol)
+        w_wthr_only.clicked.connect(self.gnrtWthrClicked)
+        self.w_wthr_only = w_wthr_only
+
+        icol += 5
         w_test_fert = QPushButton("Test fertiliser")
         helpText = 'check netCDF4 files making up fertiliser inputs'
         w_test_fert.setToolTip(helpText)
@@ -390,6 +399,14 @@ class Form(QWidget):
         self.w_ur_lon.textChanged[str].connect(self.bboxTextChanged)
 
         self.changeRegion()  # populates lat/long boxes
+
+    def gnrtWthrClicked(self):
+        """
+        generate weather for all regions, scenarios and GCMs
+        """
+        generate_all_weather(self)
+
+        return
 
     def reloadClimScenarios(self):
         """

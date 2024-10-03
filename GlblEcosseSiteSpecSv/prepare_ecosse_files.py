@@ -16,6 +16,36 @@ from shutil import copyfile
 
 from prepare_ecosse_low_level import fetch_long_term_ave_wthr_recs, make_met_files
 from glbl_ecss_cmmn_funcs import write_kml_file, write_signature_file, write_manifest_file
+from hwsd_soil_class import _gran_coords_from_lat_lon
+
+def make_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_fut):
+    """
+    generate ECOSSE historic and future weather data
+    """
+    func_name = 'make_ecosse_files'
+
+    if not isinstance(pettmp_hist, dict) or not isinstance(pettmp_fut, dict):
+        print('Bad input to ' + func_name)
+        return
+
+    gran_lat, gran_lon = _gran_coords_from_lat_lon(lat, lon)
+
+    # calculate historic average weather
+    # ==================================
+    hist_lta_precip, hist_lta_tmean, hist_weather_recs = fetch_long_term_ave_wthr_recs(climgen, pettmp_hist)
+
+    # write a single set of met files for all simulations for this grid cell
+    # ======================================================================
+    gran_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
+    met_rel_path = '..\\..\\' + climgen.region_wthr_dir + '\\' + gran_coord + '\\'
+    clim_dir = normpath( join(site.sims_dir, climgen.region_wthr_dir, gran_coord) )
+    met_fnames = make_met_files(clim_dir, lat, climgen, pettmp_fut)     # future weather
+
+    # create additional weather related files from already existing met files
+    # =======================================================================
+    irc = climgen.create_FutureAverages(clim_dir, lat, site, hist_lta_precip, hist_lta_tmean)
+
+    return
 
 def make_ecosse_files(site, climgen, soil_defn, fert_recs, plant_day, harvest_day, yield_val, pettmp_hist, pettmp_fut):
     """

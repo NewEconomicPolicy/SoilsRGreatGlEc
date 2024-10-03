@@ -80,6 +80,8 @@ def all_generate_banded_sims(form, all_regions_flag = True):
             generate_banded_sims(form, region, crop_name)
             write_study_definition_file(form)
 
+    return
+
 def generate_banded_sims(form, region, crop_name):
     """
     called from GUI
