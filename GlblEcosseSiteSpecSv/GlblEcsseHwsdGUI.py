@@ -29,8 +29,10 @@ from glbl_ecsse_high_level_test_fns import generate_banded_sims_test, all_genera
 from glbl_ecsse_low_level_test_fns import check_cntry_prvnc_mappings
 from wthr_generation_fns import generate_all_weather
 
-STD_FLD_SIZE = 80
-STD_BTN_SIZE = 100
+WDGT_SIZE_80 = 80
+WDGT_SIZE_100 = 100
+WDGT_SIZE_120 = 120
+WDGT_SIZE_180 = 180
 
 class Form(QWidget):
 
@@ -75,6 +77,7 @@ class Form(QWidget):
         grid.addWidget(lbl00, irow, 0)
 
         w_study = QLineEdit()
+        w_study.setFixedWidth(WDGT_SIZE_180)
         grid.addWidget(w_study, irow, 1)
         self.w_study = w_study
 
@@ -101,6 +104,7 @@ class Form(QWidget):
         combo00a= QComboBox()
         for region in self.regions['Region']:
             combo00a.addItem(region)
+        combo00a.setFixedWidth(WDGT_SIZE_120)
         grid.addWidget(combo00a, irow, 1)
         combo00a.currentIndexChanged[str].connect(self.changeRegion)
         self.combo00a = combo00a
@@ -112,6 +116,7 @@ class Form(QWidget):
         combo00b = QComboBox()
         for crop in self.setup['crops']:
             combo00b.addItem(crop)
+        combo00b.setFixedWidth(WDGT_SIZE_100)
         grid.addWidget(combo00b, irow, 3)
         combo00b.currentIndexChanged[str].connect(self.changeCrop)
         self.combo00b = combo00b
@@ -124,7 +129,7 @@ class Form(QWidget):
         grid.addWidget(lbl02a, irow, 0)
 
         w_ur_lon = QLineEdit()
-        w_ur_lon.setFixedWidth(STD_FLD_SIZE)
+        w_ur_lon.setFixedWidth(WDGT_SIZE_80)
         grid.addWidget(w_ur_lon, irow, 1)
         self.w_ur_lon = w_ur_lon
 
@@ -133,7 +138,7 @@ class Form(QWidget):
         grid.addWidget(lbl02b, irow, 2)
 
         w_ur_lat = QLineEdit()
-        w_ur_lat.setFixedWidth(STD_FLD_SIZE)
+        w_ur_lat.setFixedWidth(WDGT_SIZE_80)
         grid.addWidget(w_ur_lat, irow, 3)
         self.w_ur_lat = w_ur_lat
 
@@ -145,7 +150,7 @@ class Form(QWidget):
         grid.addWidget(lbl01a, irow, 0)
 
         w_ll_lon = QLineEdit()
-        w_ll_lon.setFixedWidth(STD_FLD_SIZE)
+        w_ll_lon.setFixedWidth(WDGT_SIZE_80)
         grid.addWidget(w_ll_lon, irow, 1)
         self.w_ll_lon = w_ll_lon
 
@@ -154,7 +159,7 @@ class Form(QWidget):
         grid.addWidget(lbl01b, irow, 2)
 
         w_ll_lat = QLineEdit()
-        w_ll_lat.setFixedWidth(STD_FLD_SIZE)
+        w_ll_lat.setFixedWidth(WDGT_SIZE_80)
         grid.addWidget(w_ll_lat, irow, 3)
         self.w_ll_lat = w_ll_lat
 
@@ -177,7 +182,7 @@ class Form(QWidget):
 
         w_equimode = QLineEdit()
         w_equimode.setText('')
-        w_equimode.setFixedWidth(STD_FLD_SIZE)
+        w_equimode.setFixedWidth(WDGT_SIZE_80)
         self.w_equimode = w_equimode
         grid.addWidget(w_equimode, irow, 6)
 
@@ -192,7 +197,7 @@ class Form(QWidget):
 
         w_max_cells = QLineEdit()
         w_max_cells.setText('')
-        w_max_cells.setFixedWidth(STD_FLD_SIZE)
+        w_max_cells.setFixedWidth(WDGT_SIZE_80)
         self.w_max_cells = w_max_cells
         grid.addWidget(w_max_cells, irow, 1)
 
@@ -240,7 +245,7 @@ class Form(QWidget):
         w_yr_from = QLineEdit()
         w_yr_from.setText('')
         w_yr_from.setToolTip(helpText)
-        w_yr_from.setFixedWidth(STD_FLD_SIZE)
+        w_yr_from.setFixedWidth(WDGT_SIZE_80)
         grid.addWidget(w_yr_from, irow, 1)
         self.w_yr_from = w_yr_from
 
@@ -316,7 +321,7 @@ class Form(QWidget):
         helpText = 'Create a configuration file for the spec.py script and run it.\n' \
                                                         + 'The spec.py script runs the ECOSSE programme'
         w_run_ecosse.setToolTip(helpText)
-        w_run_ecosse.setFixedWidth(STD_BTN_SIZE)
+        w_run_ecosse.setFixedWidth(WDGT_SIZE_100)
         grid.addWidget(w_run_ecosse, irow, icol)
         w_run_ecosse.clicked.connect(self.runEcosse)
         self.w_run_ecosse = w_run_ecosse
@@ -326,7 +331,7 @@ class Form(QWidget):
         helpText = 'Stop creation of simulation files or run Ecosse processing'
         w_stop_all.setToolTip(helpText)
         w_stop_all.setEnabled(False)
-        w_stop_all.setFixedWidth(STD_BTN_SIZE)
+        w_stop_all.setFixedWidth(WDGT_SIZE_100)
         grid.addWidget(w_stop_all, irow, icol)
         self.w_stop_all = w_stop_all
 
@@ -334,7 +339,7 @@ class Form(QWidget):
         w_save = QPushButton("Save")
         helpText = 'Save configuration and study definition files'
         w_save.setToolTip(helpText)
-        w_save.setFixedWidth(STD_BTN_SIZE)
+        w_save.setFixedWidth(WDGT_SIZE_100)
         grid.addWidget(w_save, irow, icol)
         w_save.clicked.connect(self.saveClicked)
 
@@ -342,13 +347,13 @@ class Form(QWidget):
         w_spec = QPushButton("Cancel")
         helpText = 'Leaves GUI without saving configuration and study definition files'
         w_spec.setToolTip(helpText)
-        w_spec.setFixedWidth(STD_BTN_SIZE)
+        w_spec.setFixedWidth(WDGT_SIZE_100)
         grid.addWidget(w_spec, irow, icol)
         w_spec.clicked.connect(self.cancelClicked)
 
         icol += 1
         w_exit = QPushButton("Exit", self)
-        w_exit.setFixedWidth(STD_BTN_SIZE)
+        w_exit.setFixedWidth(WDGT_SIZE_100)
         grid.addWidget(w_exit, irow, icol)
         w_exit.clicked.connect(self.exitClicked)
 
@@ -367,7 +372,7 @@ class Form(QWidget):
         w_test_fert = QPushButton("Test fertiliser")
         helpText = 'check netCDF4 files making up fertiliser inputs'
         w_test_fert.setToolTip(helpText)
-        w_test_fert.setFixedWidth(STD_BTN_SIZE)
+        w_test_fert.setFixedWidth(WDGT_SIZE_100)
         grid.addWidget(w_test_fert, irow, icol)
         w_test_fert.clicked.connect(self.testFertiliserClicked)
         
@@ -376,7 +381,7 @@ class Form(QWidget):
         helpText = 'check mappings of states and provinces in the FAO Excel sheet with those' + \
                    ' in the GADM and countries files'
         w_mappings.setToolTip(helpText)
-        w_mappings.setFixedWidth(STD_BTN_SIZE)
+        w_mappings.setFixedWidth(WDGT_SIZE_100)
         grid.addWidget(w_mappings, irow, icol)
         w_mappings.clicked.connect(self.checkMappingsClicked)
 
