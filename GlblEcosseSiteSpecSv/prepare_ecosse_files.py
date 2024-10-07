@@ -37,7 +37,6 @@ def make_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_fut):
     # write a single set of met files for all simulations for this grid cell
     # ======================================================================
     gran_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
-    met_rel_path = '..\\..\\' + climgen.region_wthr_dir + '\\' + gran_coord + '\\'
     clim_dir = normpath( join(site.sims_dir, climgen.region_wthr_dir, gran_coord) )
     met_fnames = make_met_files(clim_dir, lat, climgen, pettmp_fut)     # future weather
 

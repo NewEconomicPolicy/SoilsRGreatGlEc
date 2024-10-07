@@ -14,7 +14,9 @@ __version__ = '0.0.1'
 __author__ = 's03mm5'
 
 from time import time
-from locale import LC_ALL, setlocale, format_string
+from locale import format_string
+from os.path import join, normpath, isdir
+from os import listdir
 
 from getClimGenNC import ClimGenNC
 from getClimGenFns import (fetch_WrldClim_data, open_wthr_NC_sets, get_wthr_nc_coords, join_hist_fut_to_sim_wthr)
@@ -22,6 +24,7 @@ from make_site_spec_files_classes import MakeSiteFiles
 from prepare_ecosse_files import make_wthr_files
 from glbl_ecsse_low_level_fns import check_run_mask, set_region_study, update_wthr_progress
 from mngmnt_fns_and_class import create_proj_data_defns, open_proj_NC_sets, close_proj_NC_sets
+from hwsd_soil_class import _gran_coords_from_lat_lon
 
 WARNING_STR = '*** Warning *** '
 
@@ -56,15 +59,20 @@ def generate_all_weather(form, all_regions_flag = True):
     # ============
     set_region_study(form)
 
+    sims_dir = form.setup['sims_dir']
     start_from_1801 = True
     sim_strt_year = 1801
 
     fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
     sim_end_year = form.wthr_sets[fut_wthr_set]['year_end']
 
+    # for each GCM and SSP dataset group e.g. UKESM1-0-LL 585
+    # =======================================================
     for wthr_set in form.weather_set_linkages['WrldClim']:
         this_gcm, scnr = wthr_set.split('_')
 
+        # for each region
+        # ===============
         for irow, region in enumerate(form.regions['Region']):
             lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir = form.regions.iloc[irow][1:]
             bbox =  list([lon_ll, lat_ll, lon_ur, lat_ur])
@@ -94,8 +102,12 @@ def generate_all_weather(form, all_regions_flag = True):
             last_time = time()
             ncmpltd = 0
             nskipped = 0
+            nalready = 0
             warning_count = 0
             ngrowing = 0; nno_grow = 0
+
+            # for each band
+            # =============
             for nband, lat_indx in enumerate(range(lat_ur_indx, lat_ll_indx - 1, -1)):
 
                 lat = mask_defn.lats[lat_indx]
@@ -108,6 +120,10 @@ def generate_all_weather(form, all_regions_flag = True):
                     crop_grown = int(mask_val.item())
                     if crop_grown == 0:
                         nno_grow += 1
+                        continue
+
+                    already_flag = _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, nalready)
+                    if already_flag:
                         continue
 
                     ngrowing += 1
@@ -172,3 +188,19 @@ def generate_all_weather(form, all_regions_flag = True):
             print('Completed Region: {}\tCrop: {}\tLocations - growing: {}\tno grow: {}\ttotal: {}\t {}%\n'
                             .format(region,  crop_name, ngrowing, nno_grow, ntotal_str, round(100*(ngrowing/ntotal_grow),2)))
     return
+
+def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, nalready):
+    """
+    check existence of weather cell
+    """
+    already_flag = False
+    gran_lat, gran_lon = _gran_coords_from_lat_lon(lat, lon)
+    gran_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
+    clim_dir = normpath(join(sims_dir, climgen.region_wthr_dir, gran_coord))
+    if isdir(clim_dir):
+        nfiles = len(listdir(clim_dir))
+        if nfiles >= 300:
+            already_flag = True
+            nalready += 1
+
+    return already_flag

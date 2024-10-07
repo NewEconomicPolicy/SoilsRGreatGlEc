@@ -104,7 +104,7 @@ class Form(QWidget):
         combo00a= QComboBox()
         for region in self.regions['Region']:
             combo00a.addItem(region)
-        combo00a.setFixedWidth(WDGT_SIZE_120)
+        combo00a.setFixedWidth(WDGT_SIZE_180)
         grid.addWidget(combo00a, irow, 1)
         combo00a.currentIndexChanged[str].connect(self.changeRegion)
         self.combo00a = combo00a
@@ -364,6 +364,7 @@ class Form(QWidget):
         w_wthr_only = QPushButton('Create weather')
         helpText = 'Generate weather only'
         w_wthr_only.setToolTip(helpText)
+        w_wthr_only.setEnabled(True)
         grid.addWidget(w_wthr_only, irow, icol)
         w_wthr_only.clicked.connect(self.gnrtWthrClicked)
         self.w_wthr_only = w_wthr_only
