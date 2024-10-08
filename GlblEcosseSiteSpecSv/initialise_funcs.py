@@ -1,7 +1,7 @@
 """
 #-------------------------------------------------------------------------------
 # Name:        initialise_funcs.py
-# Purpose:     script to read read and write the setup and configuration files
+# Purpose:     script to read and write the setup and configuration files
 # Author:      Mike Martin
 # Created:     31/07/2015
 # Licence:     <your licence>
@@ -57,6 +57,7 @@ def initiation(form):
 
     # avoids errors when exiting
     # ==========================
+    form.wthr_sets = None
     form.req_resol_deg = None
     form.req_resol_granul = None
     form.rota_pattern = None
@@ -440,8 +441,9 @@ def read_config_file(form):
                 config = json_load(fconfig)
                 print('Read config file ' + config_file)
         except (OSError, IOError, JSONDecodeError) as err:
-            print(err)
-            return False
+            print(ERROR_STR + str(err) + ' in config file:\n\t' + config_file)
+            sleep(sleepTime)
+            exit(0)
     else:
         config = _write_default_config_file(config_file)
         print('Wrote configuration file ' + config_file)
