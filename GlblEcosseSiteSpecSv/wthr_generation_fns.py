@@ -70,14 +70,17 @@ def generate_all_weather(form, all_regions_flag = True):
     # =======================================================
     for wthr_set in form.weather_set_linkages['WrldClim']:
         this_gcm, scnr = wthr_set.split('_')
+        if scnr == 'hist':
+            continue
 
         # for each region
         # ===============
         for irow, region in enumerate(form.regions['Region']):
-            lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir = form.regions.iloc[irow][1:]
+            lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions.iloc[irow][1:]
             bbox =  list([lon_ll, lat_ll, lon_ur, lat_ur])
 
-            climgen  = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year)
+            form.setup['region_wthr_dir'] = wthr_dir_abbrv
+            climgen  = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
 
             # identify geo-extent for this run
             # ================================

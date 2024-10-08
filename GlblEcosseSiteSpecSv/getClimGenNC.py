@@ -55,7 +55,7 @@ def _check_list_for_none(metric_list):
 
 class ClimGenNC(object,):
 
-    def __init__(self, form, region, crop_name, sim_start_year, sim_end_year= -999):
+    def __init__(self, form, region, crop_name, sim_start_year, sim_end_year= -999, this_gcm=None , scnr=None):
         """
 
         """
@@ -66,9 +66,14 @@ class ClimGenNC(object,):
         else:
             sim_mnthly_flag = False     # daily timestep
 
-        wthr_rsrce = form.combo10w.currentText()
         ave_wthr_flag = form.w_ave_wthr.isChecked()
-        fut_clim_scen = form.combo10.currentText()
+        if this_gcm is None:
+            wthr_rsrce = form.combo10w.currentText()
+            fut_clim_scen = form.combo10.currentText()
+        else:
+            wthr_rsrce = this_gcm
+            fut_clim_scen = scnr
+
         hist_start_year = int(form.combo09s.currentText())
         hist_end_year = int(form.combo09e.currentText())
 
