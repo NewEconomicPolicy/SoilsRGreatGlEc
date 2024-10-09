@@ -18,6 +18,34 @@ from prepare_ecosse_low_level import fetch_long_term_ave_wthr_recs, make_met_fil
 from glbl_ecss_cmmn_funcs import write_kml_file, write_signature_file, write_manifest_file
 from hwsd_soil_class import _gran_coords_from_lat_lon
 
+SPACER_LEN = 12
+
+def _make_line(data, comment):
+    """
+
+    """
+    spacer_len = max(SPACER_LEN - len(data), 2)
+    spacer = ' ' * spacer_len
+    
+    return '{}{}# {}\n'.format(data, spacer, comment)
+
+def _make_lta_file(site, clim_dir):
+    """
+    write long term average climate section of site.txt file
+    """
+    lines = []
+    for precip, month in zip(site.lta_precip, site.months):
+        lines.append(_make_line('{}'.format(precip),'{} long term average monthly precipitation [mm]'.format(month)))
+
+    for tmean, month in zip(site.lta_tmean, site.months):
+        lines.append(_make_line('{}'.format(tmean),'{} long term average monthly temperature [mm]'.format(month)))
+
+    lta_ave_fn = join(clim_dir, 'lta_ave.txt')
+    with open(lta_ave_fn, 'w') as fhand:
+        fhand.writelines(lines)
+
+    return lta_ave_fn
+
 def make_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_fut):
     """
     generate ECOSSE historic and future weather data
@@ -43,6 +71,7 @@ def make_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_fut):
     # create additional weather related files from already existing met files
     # =======================================================================
     irc = climgen.create_FutureAverages(clim_dir, lat, site, hist_lta_precip, hist_lta_tmean)
+    lta_ave_fn= _make_lta_file(site, clim_dir)
 
     return
 

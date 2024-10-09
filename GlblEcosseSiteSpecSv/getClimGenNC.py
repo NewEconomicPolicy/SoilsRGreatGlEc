@@ -132,7 +132,7 @@ class ClimGenNC(object,):
 
     def create_FutureAverages(self, clim_dir, lat_inp, site, lta_precip, lta_tmean):
         '''
-        use prexisting metyyyys.txt files to generate a text file of average weather which will subsequently
+        use preexisting metyyyys.txt files to generate a text file of average weather which will subsequently
         be included in the input.txt file
         also create a climate file for each of the simulation years based on average weather from the CRU year range
         '''

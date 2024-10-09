@@ -8,7 +8,6 @@
 #-------------------------------------------------------------------------------
 #
 """
-
 __prog__ = 'wthr_generation_fns'
 __version__ = '0.0.1'
 __author__ = 's03mm5'
@@ -27,6 +26,7 @@ from mngmnt_fns_and_class import create_proj_data_defns, open_proj_NC_sets, clos
 from hwsd_soil_class import _gran_coords_from_lat_lon
 
 WARNING_STR = '*** Warning *** '
+QUICK_FLAG = False       # forces break from loops after max cells reached in first GCM and SSP
 
 def generate_all_weather(form, all_regions_flag = True):
     """
@@ -68,6 +68,8 @@ def generate_all_weather(form, all_regions_flag = True):
 
     # for each GCM and SSP dataset group e.g. UKESM1-0-LL 585
     # =======================================================
+    print('')
+    ntotal_wrttn = 0
     for wthr_set in form.weather_set_linkages['WrldClim']:
         this_gcm, scnr = wthr_set.split('_')
         if scnr == 'hist':
@@ -98,10 +100,6 @@ def generate_all_weather(form, all_regions_flag = True):
 
             # main AOI traversal loops - outer: North to South, inner: East to West
             # ========================
-            start_at_band = 0
-            print('Starting at band {}'.format(start_at_band))
-
-            nbands = lat_ur_indx - lat_ll_indx + 1
             last_time = time()
             ncmpltd = 0
             nskipped = 0
@@ -165,19 +163,23 @@ def generate_all_weather(form, all_regions_flag = True):
                         site_obj = MakeSiteFiles(form, climgen, comments=True)
                         make_wthr_files(site_obj, lat, lon, climgen, pettmp_hist, pettmp_sim)
                         ncmpltd += 1
+                        ntotal_wrttn += 1
 
                     last_time = update_wthr_progress(last_time, ncmpltd, nskipped, ntotal_grow, ngrowing, nno_grow,
                                                                                                                 region)
                     if ncmpltd >= max_cells:
                         break
 
-                # finished this band - report progress
-                # ====================================
+                # finished this latitude band - report progress
+                # =============================================
+                '''
                 mess = 'Processed band {} of {} bands for lat: {}\tN growing locations: {}'.format(nband,
                                                                                 nbands, lat, ngrow_this_band)
                 form.lgr.info(mess)
+                print('\n' + mess)
+                '''
                 if ncmpltd >= max_cells:
-                    print('\nFinishing run after {} cells completed'.format(ncmpltd))
+                    print('Finishing run after {} cells completed\tband: {}'.format(ncmpltd, nband))
                     break
 
             # close NC files
@@ -188,8 +190,17 @@ def generate_all_weather(form, all_regions_flag = True):
                 fut_wthr_dsets[metric].close()
 
             ntotal_str = format_string('%d', ntotal_grow, grouping=True)
-            print('Completed Region: {}\tCrop: {}\tLocations - growing: {}\tno grow: {}\ttotal: {}\t {}%\n'
-                            .format(region,  crop_name, ngrowing, nno_grow, ntotal_str, round(100*(ngrowing/ntotal_grow),2)))
+            ntotal_prcnt = round(100 * (ngrowing / ntotal_grow), 2)
+            mess = 'Completed Region: {}\tCrop: {}\tLocations - '.format(region, crop_name)
+            mess += 'growing: {}\tno grow: {}\ttotal: {}\t {}%'.format(ngrowing, nno_grow, ntotal_str, ntotal_prcnt)
+            print(mess)
+
+            if QUICK_FLAG:
+                break
+
+        print('Completed weather set: ' + this_gcm + '\tScenario: ' + scnr + '\n')
+
+    print('Finished weather generation - total number of sets written: {}'.format(ntotal_wrttn))
     return
 
 def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, nalready):
