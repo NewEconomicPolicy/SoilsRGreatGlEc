@@ -78,6 +78,7 @@ def generate_all_weather(form, all_regions_flag = True):
         # for each region
         # ===============
         for irow, region in enumerate(form.regions['Region']):
+            print('')
             lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions.iloc[irow][1:]
             bbox =  list([lon_ll, lat_ll, lon_ur, lat_ur])
 
