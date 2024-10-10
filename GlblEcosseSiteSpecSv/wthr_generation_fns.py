@@ -179,7 +179,7 @@ def generate_all_weather(form, all_regions_flag = True):
                 print('\n' + mess)
                 '''
                 if ncmpltd >= max_cells:
-                    print('Finishing run after {} cells completed\tband: {}'.format(ncmpltd, nband))
+                    print('\nFinishing run after {} cells completed\tband: {}'.format(ncmpltd, nband))
                     break
 
             # close NC files
