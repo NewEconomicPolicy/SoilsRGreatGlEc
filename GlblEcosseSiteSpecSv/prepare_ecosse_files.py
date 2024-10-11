@@ -75,27 +75,20 @@ def make_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_fut):
 
     return
 
-def make_ecosse_files(site, climgen, soil_defn, fert_recs, plant_day, harvest_day, yield_val, pettmp_hist, pettmp_fut):
+def make_ecosse_files(site, climgen, soil_defn, fert_recs, plant_day, harvest_day, yield_val, hist_lta_recs):
     """
     generate sets of Ecosse files for each site
     where each site has one or more soils and each soil can have one or more dominant soils
     pettmp_grid_cell is climate data for this soil grid point
     """
     func_name = 'make_ecosse_files'
-
-    if not isinstance(pettmp_hist, dict) or not isinstance(pettmp_fut, dict):
-        print('Bad input to ' + func_name)
-        return
+    pettmp_fut,  hist_lta_precip, hist_lta_tmean = 3*None
 
     gran_lat = soil_defn.gran_lat
     gran_lon = soil_defn.gran_lon
     lat = float(soil_defn.lat)
     lon = float(soil_defn.lon)
     mu_globals_pairs = soil_defn.mu_global_pairs
-
-    # calculate historic average weather
-    # ==================================
-    hist_lta_precip, hist_lta_tmean, hist_weather_recs = fetch_long_term_ave_wthr_recs(climgen, pettmp_hist)
 
     # write a single set of met files for all simulations for this grid cell
     # ======================================================================
@@ -135,7 +128,7 @@ def make_ecosse_files(site, climgen, soil_defn, fert_recs, plant_day, harvest_da
             site.create_site_soil_layers(soil)
             if soil_num == 0:       # MJM 2021_05_14 - only required once
                 site.data_modify_mnthly(lat, lon, climgen, met_fnames, fert_recs, plant_day, harvest_day, yield_val)
-            site.write_sim_files(sim_dir, soil, hist_weather_recs, met_rel_path)
+            site.write_sim_files(sim_dir, soil, hist_lta_recs, met_rel_path)
 
             # write kml and signature files
             # ==============================

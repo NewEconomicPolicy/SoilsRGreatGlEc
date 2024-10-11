@@ -11,6 +11,7 @@ __version__ = '1.0.00'
 
 from os.path import join, normpath
 from datetime import timedelta, date
+from calendar import month_abbr
 
 from pedotransfer import boelter, bss
 
@@ -59,7 +60,7 @@ class MakeSiteFiles(object):
 
     """
     _luts = ['ara', 'gra', 'for', 'nat', 'mis', 'src']
-    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    months = list(month_abbr[1:])
 
     def __init__(self, form,  climgen, comments = True, spacer_len = 12, nan = -999):
         """

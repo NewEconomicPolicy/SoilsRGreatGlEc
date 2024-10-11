@@ -12,8 +12,8 @@ __prog__ = 'getClimGenNC.py'
 __author__ = 's03mm5'
 
 from os import remove, mkdir
-from os.path import join, normpath, isdir, isfile
-from os.path import split as split_dir
+from os.path import join, normpath, isdir, isfile, split as split_dir
+from calendar import month_abbr
 
 from thornthwaite import thornthwaite
 
@@ -111,7 +111,7 @@ class ClimGenNC(object,):
         self.hist_start_year = hist_start_year
         self.hist_end_year   = hist_end_year
 
-        self.months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        self.months = list(month_abbr[1:])
 
         # New stanza to facilitate option when user selects "use average weather"
         # =======================================================================

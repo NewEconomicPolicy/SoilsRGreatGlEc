@@ -78,7 +78,7 @@ def generate_all_weather(form, all_regions_flag = True):
         # for each region
         # ===============
         for irow, region in enumerate(form.regions['Region']):
-            print('')
+            print('\nProcessing weather set: ' + this_gcm + '\tScenario: ' + scnr + '\tRegion: ' + region)
             lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions.iloc[irow][1:]
             bbox =  list([lon_ll, lat_ll, lon_ur, lat_ur])
 
@@ -202,20 +202,41 @@ def generate_all_weather(form, all_regions_flag = True):
         print('Completed weather set: ' + this_gcm + '\tScenario: ' + scnr + '\n')
 
     print('Finished weather generation - total number of sets written: {}'.format(ntotal_wrttn))
+
     return
 
-def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, nalready):
+def fetch_hist_lta_from_lat_lon(sims_dir, climgen, lat, lon):
     """
     check existence of weather cell
     """
-    already_flag = False
+    read_lta_flag = True
+    integrity_flag, hist_lta_recs = _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag)
+
+    return integrity_flag, hist_lta_recs
+
+def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag, nalready = 0):
+    """
+    check existence and integrity of weather cell
+    """
+    integrity_flag = False
+    hist_lta_recs = None
     gran_lat, gran_lon = _gran_coords_from_lat_lon(lat, lon)
     gran_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
     clim_dir = normpath(join(sims_dir, climgen.region_wthr_dir, gran_coord))
     if isdir(clim_dir):
-        nfiles = len(listdir(clim_dir))
-        if nfiles >= 300:
-            already_flag = True
-            nalready += 1
+        fns = listdir(clim_dir)
+        nfiles = len(fns)
+        if nfiles >= 301:
+            if 'lta_ave.txt' in fns:
+                if read_lta_flag:
+                    lta_ave_fn = join(clim_dir, 'lta_ave.txt')
+                    hist_lta_recs = []
+                    with open(lta_ave_fn, 'r') as fave:
+                        for line in fave:
+                            line = line.rstrip()  # strip out all tailing whitespace
+                            hist_lta_recs.append(line)
 
-    return already_flag
+                integrity_flag = True
+                nalready += 1
+
+    return integrity_flag, hist_lta_recs

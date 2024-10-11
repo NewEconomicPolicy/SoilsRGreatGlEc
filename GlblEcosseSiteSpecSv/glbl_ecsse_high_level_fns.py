@@ -30,6 +30,7 @@ from mngmnt_fns_and_class import create_proj_data_defns, open_proj_NC_sets, clos
 from runsites_high_level import run_ecosse_wrapper
 from shape_funcs import calculate_area, MakeBboxesNitroInpts
 from initialise_funcs import change_config_file
+from wthr_generation_fns import fetch_hist_lta_from_lat_lon
 
 WARNING_STR = '*** Warning *** '
 REGION_ABBREVS = ['Australasia','Africa','Asia','Europe','NAmerica','SAmerica']   # map to regions
@@ -141,6 +142,7 @@ def generate_banded_sims(form, region, crop_name):
     # =====================================================
     hwsd = HWSD_bil(form.lgr, form.setup['hwsd_dir'])
     soil_defn = HWSD_soil_defn(form.lgr)
+    sims_dir = form.setup['sims_dir']
 
     # fetch bounding box
     # ==================
@@ -248,59 +250,42 @@ def generate_banded_sims(form, region, crop_name):
                 nskipped += 1
                 continue
 
-            # Get future and historic weather data
-            # ====================================
-            pettmp_hist = fetch_WrldClim_data(form.lgr, lat, lon, climgen, hist_wthr_dsets,
-                                              hist_lat_indx, hist_lon_indx, hist_flag = True)
-            pettmp_fut =  fetch_WrldClim_data(form.lgr, lat, lon, climgen, fut_wthr_dsets,
-                                              fut_lat_indx, fut_lon_indx)
-            if pettmp_fut is None or pettmp_hist is None:
-                nskipped += 1
-                continue
-
             # generate sets of Ecosse files
             # =============================
-            if len(pettmp_fut) == 0 or len(pettmp_hist) == 0:
-                ret_code = 'check weather at lat: {}\tlon:{}'.format(lat, lon)
+            hist_lta_recs = fetch_hist_lta_from_lat_lon(sims_dir, climgen, lat, lon)
+
+            # yield has same resolution as mask
+            # =================================
+            val = yield_defn.nc_dset.variables[yld_varname][lat_indx, lon_indx]
+            yield_val = round(float(val.item()), 2)
+
+            lat_date_indx, lon_date_indx, ret_code = dates_defn.get_nc_coords(lat, lon)
+            if ret_code == 'OK':
+                day = dates_defn.nc_dset.variables['harvest'][lat_date_indx, lon_date_indx]
+                harvest_day = int(day.item())
+                day = dates_defn.nc_dset.variables['plant'][lat_date_indx, lon_date_indx]
+                plant_day = int(day.item())
+                fert_recs = make_fert_recs(form.lgr, fert_defns, lat, lon, sim_strt_year, sim_end_year,
+                                                            year_from, peren_flag, form.glbl_n_inpts, glbl_n_flag)
+                if fert_recs is None:
+                    warning_count += 1
+                    continue
+            else:
                 form.lgr.info(ret_code)
                 warning_count += 1
-            else:
-                # create weather for simulated years
-                # ==================================
-                pettmp_sim = join_hist_fut_to_sim_wthr(climgen, pettmp_hist, pettmp_fut, start_from_1801)
+                continue
 
-                # yield has same resolution as mask
-                # =================================
-                val = yield_defn.nc_dset.variables[yld_varname][lat_indx, lon_indx]
-                yield_val = round(float(val.item()), 2)
-
-                lat_date_indx, lon_date_indx, ret_code = dates_defn.get_nc_coords(lat, lon)
-                if ret_code == 'OK':
-                    day = dates_defn.nc_dset.variables['harvest'][lat_date_indx, lon_date_indx]
-                    harvest_day = int(day.item())
-                    day = dates_defn.nc_dset.variables['plant'][lat_date_indx, lon_date_indx]
-                    plant_day = int(day.item())
-                    fert_recs = make_fert_recs(form.lgr, fert_defns, lat, lon, sim_strt_year, sim_end_year,
-                                                                year_from, peren_flag, form.glbl_n_inpts, glbl_n_flag)
-                    if fert_recs is None:
-                        warning_count += 1
-                        continue
-                else:
-                    form.lgr.info(ret_code)
+            if not SKIP_GRAFT:
+                # simplify if requested
+                # =====================
+                ret_code = soil_defn.simplify_soil_defn(use_dom_soil_flag, use_high_cover_flag, hwsd.bad_muglobals)
+                if ret_code is None:
                     warning_count += 1
                     continue
 
-                if not SKIP_GRAFT:
-                    # simplify if requested
-                    # =====================
-                    ret_code = soil_defn.simplify_soil_defn(use_dom_soil_flag, use_high_cover_flag, hwsd.bad_muglobals)
-                    if ret_code is None:
-                        warning_count += 1
-                        continue
-
-                    site_obj = MakeSiteFiles(form, climgen, comments = True)
-                    make_ecosse_files(site_obj, climgen, soil_defn, fert_recs, plant_day, harvest_day, yield_val,
-                                                                                                pettmp_hist, pettmp_sim)
+                site_obj = MakeSiteFiles(form, climgen, comments = True)
+                make_ecosse_files(site_obj, climgen, soil_defn, fert_recs, plant_day, harvest_day,
+                                                                                            yield_val, hist_lta_recs)
                 ncompleted += 1
 
             last_time = update_progress(last_time, ncompleted, nskipped, ntotal_grow, ngrowing, nno_grow, hwsd)
