@@ -71,7 +71,7 @@ def make_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_fut):
     # create additional weather related files from already existing met files
     # =======================================================================
     irc = climgen.create_FutureAverages(clim_dir, lat, site, hist_lta_precip, hist_lta_tmean)
-    lta_ave_fn= _make_lta_file(site, clim_dir)
+    lta_ave_fn = _make_lta_file(site, clim_dir)
 
     return
 
@@ -82,7 +82,7 @@ def make_ecosse_files(site, climgen, soil_defn, fert_recs, plant_day, harvest_da
     pettmp_grid_cell is climate data for this soil grid point
     """
     func_name = 'make_ecosse_files'
-    pettmp_fut,  hist_lta_precip, hist_lta_tmean = 3*None
+    pettmp_fut,  hist_lta_precip, hist_lta_tmean = 3*[None]
 
     gran_lat = soil_defn.gran_lat
     gran_lon = soil_defn.gran_lon

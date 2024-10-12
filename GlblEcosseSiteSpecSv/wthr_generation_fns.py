@@ -124,7 +124,7 @@ def generate_all_weather(form, all_regions_flag = True):
                         nno_grow += 1
                         continue
 
-                    already_flag = _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, nalready)
+                    already_flag, dummy = _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, nalready)
                     if already_flag:
                         continue
 

@@ -688,8 +688,11 @@ def write_config_file(form):
         descriptor = 'Wrote new'
 
     with open(config_file, 'w') as fconfig:
-        json_dump(config, fconfig, indent=2, sort_keys=True)
-        print('\n' + descriptor + ' configuration file ' + config_file)
+        try:
+            json_dump(config, fconfig, indent=2, sort_keys=True)
+            print('\n' + descriptor + ' configuration file ' + config_file)
+        except BaseException as err:
+            print(str(err))
 
     return
 
