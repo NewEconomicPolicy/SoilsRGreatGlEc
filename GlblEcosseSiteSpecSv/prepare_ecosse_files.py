@@ -44,6 +44,13 @@ def _make_lta_file(site, clim_dir):
     with open(lta_ave_fn, 'w') as fhand:
         fhand.writelines(lines)
 
+    # will be copied
+    # ==============
+    avemet_dat = join(clim_dir, 'AVEMET.DAT')
+    with open(avemet_dat, 'w') as fobj:
+        for imnth, (precip, pet, tmean) in enumerate(zip(site.lta_precip, site.lta_pet, site.lta_tmean)):
+            fobj.write('{} {} {} {}\n'.format(imnth + 1, precip, pet, tmean))
+
     return lta_ave_fn
 
 def make_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_fut):
@@ -75,7 +82,8 @@ def make_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_fut):
 
     return
 
-def make_ecosse_files(site, climgen, soil_defn, fert_recs, plant_day, harvest_day, yield_val, hist_lta_recs):
+def make_ecosse_files(site, climgen, soil_defn, fert_recs, plant_day, harvest_day, yield_val,
+                                                                                hist_lta_recs, met_fnames):
     """
     generate sets of Ecosse files for each site
     where each site has one or more soils and each soil can have one or more dominant soils
@@ -94,12 +102,6 @@ def make_ecosse_files(site, climgen, soil_defn, fert_recs, plant_day, harvest_da
     # ======================================================================
     gran_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
     met_rel_path = '..\\..\\' + climgen.region_wthr_dir + '\\' + gran_coord + '\\'
-    clim_dir = normpath( join(site.sims_dir, climgen.region_wthr_dir, gran_coord) )
-    met_fnames = make_met_files(clim_dir, lat, climgen, pettmp_fut)     # future weather
-
-    # create additional weather related files from already existing met files
-    # =======================================================================
-    irc = climgen.create_FutureAverages(clim_dir, lat, site, hist_lta_precip, hist_lta_tmean)
 
     #------------------------------------------------------------------
     # Create a set of simulation input files for each dominant

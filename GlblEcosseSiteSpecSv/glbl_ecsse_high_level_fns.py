@@ -252,7 +252,10 @@ def generate_banded_sims(form, region, crop_name):
 
             # generate sets of Ecosse files
             # =============================
-            hist_lta_recs = fetch_hist_lta_from_lat_lon(sims_dir, climgen, lat, lon)
+            integrity_flag, hist_lta_recs, met_fnames = fetch_hist_lta_from_lat_lon(sims_dir, climgen, lat, lon)
+            if not integrity_flag:
+                nskipped += 1
+                continue
 
             # yield has same resolution as mask
             # =================================
@@ -285,7 +288,7 @@ def generate_banded_sims(form, region, crop_name):
 
                 site_obj = MakeSiteFiles(form, climgen, comments = True)
                 make_ecosse_files(site_obj, climgen, soil_defn, fert_recs, plant_day, harvest_day,
-                                                                                            yield_val, hist_lta_recs)
+                                                                         yield_val, hist_lta_recs, met_fnames)
                 ncompleted += 1
 
             last_time = update_progress(last_time, ncompleted, nskipped, ntotal_grow, ngrowing, nno_grow, hwsd)

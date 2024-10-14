@@ -12,6 +12,7 @@ __version__ = '1.0.00'
 from os.path import join, normpath
 from datetime import timedelta, date
 from calendar import month_abbr
+from shutil import copyfile
 
 from pedotransfer import boelter, bss
 
@@ -430,8 +431,8 @@ class MakeSiteFiles(object):
         # self._write_fnames_file(directory)
         self._write_management_file(directory, met_rel_path)
         self._write_soil_file(directory)
-        self._write_site_file(directory)
-        self._write_avemet_file(directory)
+        self._write_site_file(directory, hist_weather_recs)
+        self._write_avemet_file(directory, met_rel_path)
         '''
         write_crop_sun_file(directory)
         write_crop_pars(directory)  # crop_pars for limited data only
@@ -439,14 +440,18 @@ class MakeSiteFiles(object):
         write_nitpars(directory)
         '''
 
-    def _write_avemet_file(self, directory):
+    def _write_avemet_file(self, directory, met_rel_path):
         """
 
         """
+        avemet_from = join(self.sims_dir, met_rel_path[6:], 'AVEMET.DAT')
+        avemet_to = join(directory, 'AVEMET.DAT')
+        copyfile(avemet_from, avemet_to)
+        '''
         with open(join(directory, 'AVEMET.DAT'), 'w') as f:
             for i, (p, pet, t) in enumerate(zip(self.lta_precip, self.lta_pet, self.lta_tmean)):
                 f.write('{} {} {} {}\n'.format(i + 1, p, pet, t))
-
+        '''
     def _write_fnames_file(self, directory):
         """
 
@@ -566,7 +571,7 @@ class MakeSiteFiles(object):
         with open(join(directory, 'management.txt'), 'w') as fhand:
             fhand.writelines(lines)
 
-    def _write_site_file(self, directory, site_filename='site.txt'):
+    def _write_site_file(self, directory, hist_weather_recs, site_filename='site.txt'):
         """
 
         """
@@ -607,13 +612,16 @@ class MakeSiteFiles(object):
 
         # Long term average climate
         # =========================
+        for rec in hist_weather_recs:
+            output.append(rec + '\n')
+        '''
         for precip, month in zip(self.lta_precip, self.months):
             output.append(_line('{}'.format(precip),
                           '{} long term average monthly precipitation [mm]'.format(month)))
         for tmean, month in zip(self.lta_tmean, self.months):
             output.append(_line('{}'.format(tmean),
                           '{} long term average monthly temperature [mm]'.format(month)))
-
+        '''
         # Other bits and bobs
         # ===================
         output.append(_line('{}'.format(self.lat),              'Latitude [decimal deg]'))

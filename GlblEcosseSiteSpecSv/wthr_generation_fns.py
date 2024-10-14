@@ -72,12 +72,15 @@ def generate_all_weather(form, all_regions_flag = True):
     ntotal_wrttn = 0
     for wthr_set in form.weather_set_linkages['WrldClim']:
         this_gcm, scnr = wthr_set.split('_')
-        if scnr == 'hist':
+        if scnr == 'hist' or scnr != '585':             # mod
             continue
 
         # for each region
         # ===============
         for irow, region in enumerate(form.regions['Region']):
+            if region != 'North America':  # mod
+                continue
+
             print('\nProcessing weather set: ' + this_gcm + '\tScenario: ' + scnr + '\tRegion: ' + region)
             lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions.iloc[irow][1:]
             bbox =  list([lon_ll, lat_ll, lon_ur, lat_ur])
@@ -124,7 +127,7 @@ def generate_all_weather(form, all_regions_flag = True):
                         nno_grow += 1
                         continue
 
-                    already_flag, dummy = _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, nalready)
+                    already_flag, dummy, met_fnames = _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, nalready)
                     if already_flag:
                         continue
 
@@ -210,9 +213,9 @@ def fetch_hist_lta_from_lat_lon(sims_dir, climgen, lat, lon):
     check existence of weather cell
     """
     read_lta_flag = True
-    integrity_flag, hist_lta_recs = _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag)
+    integrity_flag, hist_lta_recs, met_fnames = _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag)
 
-    return integrity_flag, hist_lta_recs
+    return integrity_flag, hist_lta_recs, met_fnames
 
 def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag, nalready = 0):
     """
@@ -220,13 +223,14 @@ def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag, nalready
     """
     integrity_flag = False
     hist_lta_recs = None
+    met_fnames = None
     gran_lat, gran_lon = _gran_coords_from_lat_lon(lat, lon)
     gran_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
     clim_dir = normpath(join(sims_dir, climgen.region_wthr_dir, gran_coord))
     if isdir(clim_dir):
         fns = listdir(clim_dir)
         nfiles = len(fns)
-        if nfiles >= 301:
+        if nfiles >= 302:
             if 'lta_ave.txt' in fns:
                 if read_lta_flag:
                     lta_ave_fn = join(clim_dir, 'lta_ave.txt')
@@ -237,6 +241,7 @@ def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag, nalready
                             hist_lta_recs.append(line)
 
                 integrity_flag = True
+                met_fnames = fns[2:]
                 nalready += 1
 
-    return integrity_flag, hist_lta_recs
+    return integrity_flag, hist_lta_recs, met_fnames
