@@ -46,12 +46,21 @@ def _make_lta_file(site, clim_dir):
 
     # will be copied
     # ==============
-    avemet_dat = join(clim_dir, 'AVEMET.DAT')
-    with open(avemet_dat, 'w') as fobj:
-        for imnth, (precip, pet, tmean) in enumerate(zip(site.lta_precip, site.lta_pet, site.lta_tmean)):
-            fobj.write('{} {} {} {}\n'.format(imnth + 1, precip, pet, tmean))
+    avemet_fn = join(clim_dir, 'AVEMET.DAT')
+    make_avemet_file(avemet_fn, site.lta_precip, site.lta_pet, site.lta_tmeann)
 
     return lta_ave_fn
+
+def make_avemet_file(clim_dir, lta_precip, lta_pet, lta_tmean):
+    """
+    will be copied
+    """
+    avemet_dat = join(clim_dir, 'AVEMET.DAT')
+    with open(avemet_dat, 'w') as fobj:
+        for imnth, (precip, pet, tmean) in enumerate(zip(lta_precip, lta_pet, lta_tmean)):
+            fobj.write('{} {} {} {}\n'.format(imnth + 1, precip, pet, tmean))
+
+    return
 
 def make_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_fut):
     """

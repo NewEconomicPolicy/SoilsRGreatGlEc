@@ -432,7 +432,7 @@ class MakeSiteFiles(object):
         self._write_management_file(directory, met_rel_path)
         self._write_soil_file(directory)
         self._write_site_file(directory, hist_weather_recs)
-        self._write_avemet_file(directory, met_rel_path)
+        self._copy_avemet_file(directory, met_rel_path)
         '''
         write_crop_sun_file(directory)
         write_crop_pars(directory)  # crop_pars for limited data only
@@ -440,18 +440,14 @@ class MakeSiteFiles(object):
         write_nitpars(directory)
         '''
 
-    def _write_avemet_file(self, directory, met_rel_path):
+    def _copy_avemet_file(self, directory, met_rel_path):
         """
 
         """
         avemet_from = join(self.sims_dir, met_rel_path[6:], 'AVEMET.DAT')
         avemet_to = join(directory, 'AVEMET.DAT')
         copyfile(avemet_from, avemet_to)
-        '''
-        with open(join(directory, 'AVEMET.DAT'), 'w') as f:
-            for i, (p, pet, t) in enumerate(zip(self.lta_precip, self.lta_pet, self.lta_tmean)):
-                f.write('{} {} {} {}\n'.format(i + 1, p, pet, t))
-        '''
+
     def _write_fnames_file(self, directory):
         """
 

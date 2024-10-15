@@ -68,14 +68,14 @@ class ClimGenNC(object,):
 
         ave_wthr_flag = form.w_ave_wthr.isChecked()
         if this_gcm is None:
-            wthr_rsrce = form.combo10w.currentText()
-            fut_clim_scen = form.combo10.currentText()
+            wthr_rsrce = form.w_combo10w.currentText()
+            fut_clim_scen = form.w_combo10.currentText()
         else:
             wthr_rsrce = this_gcm
             fut_clim_scen = scnr
 
-        hist_start_year = int(form.combo09s.currentText())
-        hist_end_year = int(form.combo09e.currentText())
+        hist_start_year = int(form.w_combo09s.currentText())
+        hist_end_year = int(form.w_combo09e.currentText())
 
         # ===============================================================
         hist_wthr_set = form.wthr_sets['WrldClim_hist']

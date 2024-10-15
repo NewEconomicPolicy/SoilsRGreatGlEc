@@ -36,7 +36,7 @@ def calculate_grid_cell(form, granularity = 120):
     except ValueError:
         print(latText)
 
-    resol = form.combo16.currentText()
+    resol = form.w_combo16.currentText()
     try:
         granul = reverse_resols[resol]
     except KeyError as e:
@@ -123,13 +123,13 @@ def commonSection(form, grid, irow):
 
     icol += 1
     WDGT_SIZE_100 = 100
-    combo10w = QComboBox()
+    w_combo10w = QComboBox()
     for wthr_resource in form.wthr_gcms:
-        combo10w.addItem(wthr_resource)
-    combo10w.setFixedWidth(WDGT_SIZE_100)
-    combo10w.currentIndexChanged[str].connect(form.reloadClimScenarios)
-    form.combo10w = combo10w
-    grid.addWidget(combo10w, irow, icol)
+        w_combo10w.addItem(wthr_resource)
+    w_combo10w.setFixedWidth(WDGT_SIZE_100)
+    w_combo10w.currentIndexChanged[str].connect(form.reloadClimScenarios)
+    form.w_combo10w = w_combo10w
+    grid.addWidget(w_combo10w, irow, icol)
 
     # scenarios
     # =========
@@ -144,12 +144,12 @@ def commonSection(form, grid, irow):
     grid.addWidget(lbl10, irow, icol)
 
     icol += 1
-    combo10 = QComboBox()
+    w_combo10 = QComboBox()
     for scen in form.wthr_scenarios:
-        combo10.addItem(str(scen))
-    combo10.setFixedWidth(80)
-    form.combo10 = combo10
-    grid.addWidget(combo10, irow, icol)
+        w_combo10.addItem(str(scen))
+    w_combo10.setFixedWidth(80)
+    form.w_combo10 = w_combo10
+    grid.addWidget(w_combo10, irow, icol)
 
     # next line
     # =========
@@ -162,23 +162,23 @@ def commonSection(form, grid, irow):
     lbl09s.setToolTip(helpText)
     grid.addWidget(lbl09s, irow, 0)
 
-    combo09s = QComboBox()
+    w_combo09s = QComboBox()
     for year in hist_syears:
-        combo09s.addItem(str(year))
-    combo09s.setFixedWidth(80)
-    form.combo09s = combo09s
-    grid.addWidget(combo09s, irow, 1)    # row, column, rowSpan, columnSpan
+        w_combo09s.addItem(str(year))
+    w_combo09s.setFixedWidth(80)
+    form.w_combo09s = w_combo09s
+    grid.addWidget(w_combo09s, irow, 1)    # row, column, rowSpan, columnSpan
 
     lbl09e = QLabel('End year:')
     lbl09e.setAlignment(Qt.AlignRight)
     grid.addWidget(lbl09e, irow, 2)
 
-    combo09e = QComboBox()
+    w_combo09e = QComboBox()
     for year in hist_eyears:
-        combo09e.addItem(str(year))
-    combo09e.setFixedWidth(80)
-    form.combo09e = combo09e
-    grid.addWidget(combo09e, irow, 3)
+        w_combo09e.addItem(str(year))
+    w_combo09e.setFixedWidth(80)
+    form.w_combo09e = w_combo09e
+    grid.addWidget(w_combo09e, irow, 3)
 
     # line 11
     # =======
@@ -190,23 +190,23 @@ def commonSection(form, grid, irow):
     lbl11s.setAlignment(Qt.AlignRight)
     grid.addWidget(lbl11s, irow, 0)
 
-    combo11s = QComboBox()
+    w_combo11s = QComboBox()
     for year in fut_syears:
-        combo11s.addItem(str(year))
-    form.combo11s = combo11s
-    combo11s.setFixedWidth(80)
-    grid.addWidget(combo11s, irow, 1)
+        w_combo11s.addItem(str(year))
+    form.w_combo11s = w_combo11s
+    w_combo11s.setFixedWidth(80)
+    grid.addWidget(w_combo11s, irow, 1)
 
     lbl11e = QLabel('End year')
     lbl11e.setAlignment(Qt.AlignRight)
     grid.addWidget(lbl11e, irow, 2)
 
-    combo11e = QComboBox()
+    w_combo11e = QComboBox()
     for year in fut_eyears:
-        combo11e.addItem(str(year))
-    combo11e.setFixedWidth(80)
-    form.combo11e = combo11e
-    grid.addWidget(combo11e, irow, 3)
+        w_combo11e.addItem(str(year))
+    w_combo11e.setFixedWidth(80)
+    form.w_combo11e = w_combo11e
+    grid.addWidget(w_combo11e, irow, 3)
     
     w_ave_wthr = QCheckBox('Start simulation from 1801')
     helpText = 'Select this option to start simulation from 1801 - only activated when weather already exists\n' + \
@@ -313,15 +313,15 @@ def grid_coarseness(form, grid, irow):
     # lbl16.setEnabled(False)
     grid.addWidget(lbl16, irow, 0)
 
-    combo16 = QComboBox()
+    w_combo16 = QComboBox()
     for resol in sorted(resolutions,reverse = True):
-        combo16.addItem(str(resolutions[resol]))
-    # combo16.setEnabled(False)
-    combo16.setToolTip(helpText)
-    combo16.currentIndexChanged[str].connect(form.resolutionChanged)
-    combo16.setFixedWidth(80)
-    form.combo16 = combo16
-    grid.addWidget(combo16, irow, 1)
+        w_combo16.addItem(str(resolutions[resol]))
+    # w_combo16.setEnabled(False)
+    w_combo16.setToolTip(helpText)
+    w_combo16.currentIndexChanged[str].connect(form.resolutionChanged)
+    w_combo16.setFixedWidth(80)
+    form.w_combo16 = w_combo16
+    grid.addWidget(w_combo16, irow, 1)
 
     form.lbl16a = QLabel('')
     form.lbl16a.setToolTip(helpText)

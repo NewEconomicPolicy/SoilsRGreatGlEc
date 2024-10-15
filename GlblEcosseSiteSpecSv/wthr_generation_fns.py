@@ -14,26 +14,112 @@ __author__ = 's03mm5'
 
 from time import time
 from locale import format_string
-from os.path import join, normpath, isdir
-from os import listdir
+from os.path import join, normpath, isdir, split
+from os import listdir, walk
 
 from getClimGenNC import ClimGenNC
 from getClimGenFns import (fetch_WrldClim_data, open_wthr_NC_sets, get_wthr_nc_coords, join_hist_fut_to_sim_wthr)
 from make_site_spec_files_classes import MakeSiteFiles
-from prepare_ecosse_files import make_wthr_files
+from prepare_ecosse_files import make_wthr_files, make_avemet_file
 from glbl_ecsse_low_level_fns import check_run_mask, set_region_study, update_wthr_progress
 from mngmnt_fns_and_class import create_proj_data_defns, open_proj_NC_sets, close_proj_NC_sets
 from hwsd_soil_class import _gran_coords_from_lat_lon
 
+from thornthwaite import thornthwaite
+
+ERROR_STR = '*** Error *** '
 WARNING_STR = '*** Warning *** '
 QUICK_FLAG = False       # forces break from loops after max cells reached in first GCM and SSP
+
+NGRANULARITY = 120
+NEXPCTD_MET_FILES = 302
+LTA_RECS_FN = 'lta_ave.txt'
+
+def write_avemet_files(form):
+    """
+    traverse each GCM and SSP dataset group e.g. UKESM1-0-LL 585
+    """
+    print('')
+    max_cells = int(form.w_max_cells.text())
+    sims_dir = form.setup['sims_dir']
+
+    nwrote = 0
+    for wthr_set in form.weather_set_linkages['WrldClim']:
+        wthr_rsrce, scnr = wthr_set.split('_')
+        if scnr == 'hist':  # mod
+            continue
+
+        region_wthr_dir = form.setup['region_wthr_dir'] + wthr_rsrce + '_' + scnr
+
+        # for each region
+        # ===============
+        for irow, region in enumerate(form.regions['Region']):
+            lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions.iloc[irow][1:]
+
+            # main traversal loop
+            # ===================
+            clim_dir = normpath(join(sims_dir, region_wthr_dir))
+
+            mess = '\nProcessing weather set: ' + wthr_rsrce + '\tScenario: ' + scnr + '\tRegion: ' + region
+            mess += '\t\tabbrev: ' + wthr_dir_abbrv + '\n\tclim_dir: ' + clim_dir
+            print(mess)
+
+            if not isdir(clim_dir):
+                print(clim_dir + ' *** does not exist ***')
+                break
+
+            # step through each directory comprising ECOSSE met files
+            # =======================================================
+            last_time = time()
+            nwrote = 0
+            for drctry, subdirs, files in walk(clim_dir):
+                nfiles = len(files)
+                nsubdirs = len(subdirs)
+                if nsubdirs > 0:    # first directory has four scenarios e.g.  Y:\GlblEcssOutputsSv\EcosseSims\AfUKESM1-0-LL_126
+                    continue
+
+                # there should be 300 met files plus lta_ave.txt and AVEMET.DAT
+                # =============================================================
+                if nfiles >= NEXPCTD_MET_FILES:
+                    continue
+                    
+                # if lta_ave.txt is not present then something is wrong
+                # =====================================================
+                if LTA_RECS_FN in files:
+                    lta_ave_fn = join(drctry, LTA_RECS_FN)
+                    with open(lta_ave_fn, 'r') as flta_ave:
+
+                        lta_recs = flta_ave.readlines()
+                        vals = [float(rec.split('#')[0]) for rec in lta_recs]
+                        lta_precip, lta_tmean = vals[:12], vals[12:]
+
+                        gran_coord = split(drctry)[1]
+                        gran_lat = int(gran_coord.split('_')[0])
+                        cell_lat = 90.0 - gran_lat / NGRANULARITY
+                        lta_pet = thornthwaite(lta_tmean, cell_lat)
+
+                        make_avemet_file(drctry, lta_precip, lta_pet, lta_tmean)
+                        nwrote += 1
+                else:
+                    print(WARNING_STR + LTA_RECS_FN + ' file should be present in ' + drctry)
+
+            if nwrote >= max_cells:
+                print('\nFinished checking having written {} AVEMET.DAT files'.format(nwrote))
+                break
+
+            print('Completed Region: ' + region)
+
+        print('Completed weather set: ' + wthr_rsrce + '\tScenario: ' + scnr + '\n')
+
+    print('Finished AVEMET creation - checked: {} cells'.format(nwrote))
+    return
 
 def generate_all_weather(form, all_regions_flag = True):
     """
 
     """
     max_cells = int(form.w_max_cells.text())
-    crop_name = form.combo00b.currentText()
+    crop_name = form.w_combo00b.currentText()
 
     # check resolution
     # ================
@@ -49,7 +135,7 @@ def generate_all_weather(form, all_regions_flag = True):
     # ================================================
     proj_data_defns = create_proj_data_defns(form.setup['proj_path'], crop_name, req_resol_deg)
     if proj_data_defns is None:
-        print('*** Error *** verifing NC files for study ' + form.setup['region_study'])
+        print(ERROR_STR + 'verifing NC files for study ' + form.setup['region_study'])
         return
 
     mask_defn, yield_defn, dates_defn, fert_defns = proj_data_defns
@@ -154,15 +240,13 @@ def generate_all_weather(form, all_regions_flag = True):
                         nskipped += 1
                         continue
 
-                    # generate sets of Ecosse files
-                    # =============================
+                    # create weather for simulated years
+                    # ==================================
                     if len(pettmp_fut) == 0 or len(pettmp_hist) == 0:
                         ret_code = 'check weather at lat: {}\tlon:{}'.format(lat, lon)
                         form.lgr.info(ret_code)
                         warning_count += 1
                     else:
-                        # create weather for simulated years
-                        # ==================================
                         pettmp_sim = join_hist_fut_to_sim_wthr(climgen, pettmp_hist, pettmp_fut, start_from_1801)
                         site_obj = MakeSiteFiles(form, climgen, comments=True)
                         make_wthr_files(site_obj, lat, lon, climgen, pettmp_hist, pettmp_sim)

@@ -50,9 +50,9 @@ def set_region_study(form):
     study = form.w_study.text()
     study = study.replace(' ', '_')
 
-    region = form.combo00a.currentText()
-    region_indx = form.combo00a.currentIndex()
-    crop_name = form.combo00b.currentText()
+    region = form.w_combo00a.currentText()
+    region_indx = form.w_combo00a.currentIndex()
+    crop_name = form.w_combo00b.currentText()
 
     region_study = (region + '_' + crop_name).replace(' ', '_') + '_' + study
     form.setup['region_study'] = region_study
@@ -501,7 +501,7 @@ def generate_cells(form):
     func_name =  __prog__ + ' generate_cells'
 
     project_path = form.setup['proj_loc']
-    crop = form.combo00b.currentText()
+    crop = form.w_combo00b.currentText()
     crop_mask_path = join(project_path, 'cropmasks',crop.lower())
     req_resol_deg = str(form.req_resol_deg)
     lon_ll, lat_ll, lon_ur, lat_ur = form.bbox

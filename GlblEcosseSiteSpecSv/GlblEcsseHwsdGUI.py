@@ -27,7 +27,7 @@ from shape_funcs import format_bbox, calculate_area
 
 from glbl_ecsse_high_level_test_fns import generate_banded_sims_test, all_generate_banded_sims_test
 from glbl_ecsse_low_level_test_fns import check_cntry_prvnc_mappings
-from wthr_generation_fns import generate_all_weather
+from wthr_generation_fns import generate_all_weather, write_avemet_files
 
 WDGT_SIZE_80 = 80
 WDGT_SIZE_100 = 100
@@ -61,7 +61,7 @@ class Form(QWidget):
         # add LH vertical box to horizontal box
         hbox.addLayout(lh_vbox)
 
-        # right hand box consists of combo boxes, labels and buttons
+        # right hand box consists of w_combo boxes, labels and buttons
         # ==========================================================
         rh_vbox = QVBoxLayout()
 
@@ -87,12 +87,12 @@ class Form(QWidget):
         lbl00s.setToolTip(helpText)
         grid.addWidget(lbl00s, irow, 2)
 
-        combo00s = QComboBox()
+        w_combo00s = QComboBox()
         for study in self.studies:
-            combo00s.addItem(study)
-        grid.addWidget(combo00s, irow, 3)
-        combo00s.currentIndexChanged[str].connect(self.changeConfigFile)
-        self.combo00s = combo00s
+            w_combo00s.addItem(study)
+        grid.addWidget(w_combo00s, irow, 3)
+        w_combo00s.currentIndexChanged[str].connect(self.changeConfigFile)
+        self.w_combo00s = w_combo00s
 
         # line 1
         # ======
@@ -101,25 +101,25 @@ class Form(QWidget):
         lbl00a.setAlignment(Qt.AlignRight)
         grid.addWidget(lbl00a, irow, 0)
 
-        combo00a= QComboBox()
+        w_combo00a= QComboBox()
         for region in self.regions['Region']:
-            combo00a.addItem(region)
-        combo00a.setFixedWidth(WDGT_SIZE_180)
-        grid.addWidget(combo00a, irow, 1)
-        combo00a.currentIndexChanged[str].connect(self.changeRegion)
-        self.combo00a = combo00a
+            w_combo00a.addItem(region)
+        w_combo00a.setFixedWidth(WDGT_SIZE_180)
+        grid.addWidget(w_combo00a, irow, 1)
+        w_combo00a.currentIndexChanged[str].connect(self.changeRegion)
+        self.w_combo00a = w_combo00a
 
         lbl00b = QLabel('Crop:')
         lbl00b.setAlignment(Qt.AlignRight)
         grid.addWidget(lbl00b, irow, 2)
 
-        combo00b = QComboBox()
+        w_combo00b = QComboBox()
         for crop in self.setup['crops']:
-            combo00b.addItem(crop)
-        combo00b.setFixedWidth(WDGT_SIZE_100)
-        grid.addWidget(combo00b, irow, 3)
-        combo00b.currentIndexChanged[str].connect(self.changeCrop)
-        self.combo00b = combo00b
+            w_combo00b.addItem(crop)
+        w_combo00b.setFixedWidth(WDGT_SIZE_100)
+        grid.addWidget(w_combo00b, irow, 3)
+        w_combo00b.currentIndexChanged[str].connect(self.changeCrop)
+        self.w_combo00b = w_combo00b
 
         # line 2 - Upper right lon/lat
         # ============================
@@ -368,8 +368,16 @@ class Form(QWidget):
         grid.addWidget(w_wthr_only, irow, icol)
         w_wthr_only.clicked.connect(self.gnrtWthrClicked)
         self.w_wthr_only = w_wthr_only
+        icol += 1
 
-        icol += 5
+        w_avemet = QPushButton("Fix AVEMET")
+        helpText = 'traverse previously written met data and write AVEMET.DAT file'
+        w_avemet.setToolTip(helpText)
+        w_avemet.setFixedWidth(WDGT_SIZE_100)
+        grid.addWidget(w_avemet, irow, icol)
+        w_avemet.clicked.connect(self.writeAvemetClicked)
+
+        icol += 4
         w_test_fert = QPushButton("Test fertiliser")
         helpText = 'check netCDF4 files making up fertiliser inputs'
         w_test_fert.setToolTip(helpText)
@@ -406,6 +414,23 @@ class Form(QWidget):
 
         self.changeRegion()  # populates lat/long boxes
 
+    def writeAvemetClicked(self):
+        """
+
+        """
+        write_avemet_files(self)
+
+        return
+
+
+    def gnrtWthrClicked(self):
+        """
+        generate weather for all regions, scenarios and GCMs
+        """
+        generate_all_weather(self)
+
+        return
+
     def gnrtWthrClicked(self):
         """
         generate weather for all regions, scenarios and GCMs
@@ -418,33 +443,38 @@ class Form(QWidget):
         """
         determine scenarios for this GCM
         """
-        gcm = self.combo10w.currentText()
+        gcm = self.w_combo10w.currentText()
         scnrs = []
         for wthr_set in self.weather_set_linkages['WrldClim']:
             this_gcm, scnr = wthr_set.split('_')
             if this_gcm == gcm:
                 scnrs.append(scnr)
 
-        self.combo10.clear()
-        self.combo10.addItems(scnrs)
+        self.w_combo10.clear()
+        self.w_combo10.addItems(scnrs)
 
     def checkMappingsClicked(self):
+        """
 
+        """
         check_cntry_prvnc_mappings(self)
 
     def testFertiliserClicked(self):
+        """
 
+        """
         if self.w_all_regions.isChecked():
             all_generate_banded_sims_test(self)
         else:
-            region = self.combo00a.currentText()
-            crop_name = self.combo00b.currentText()
+            region = self.w_combo00a.currentText()
+            crop_name = self.w_combo00b.currentText()
             generate_banded_sims_test(self, region, crop_name)
             write_study_definition_file(self)
 
     def saveClicked(self):
+        """
 
-        func_name = __prog__ + ' saveClicked'
+        """
 
         # check for spaces
         # ================
@@ -459,13 +489,17 @@ class Form(QWidget):
                 build_and_display_studies(self)
 
     def resolutionChanged(self):
+        """
 
+        """
         calculate_grid_cell(self)
 
     def changeRegion(self):
+        """
 
+        """
         # bounding box set up
-        irow = self.combo00a.currentIndex()
+        irow = self.w_combo00a.currentIndex()
 
         ll_lon, ur_lon, ll_lat, ur_lat, wthr_dir = self.regions.iloc[irow][1:]
         area = calculate_area(list([ll_lon, ll_lat, ur_lon, ur_lat]))
@@ -477,7 +511,9 @@ class Form(QWidget):
         self.setup['region_wthr_dir'] = wthr_dir        # see also def set_region_study
 
     def bboxTextChanged(self):
+        """
 
+        """
         try:
             bbox = list([float(self.w_ll_lon.text()), float(self.w_ll_lat.text()),
                 float(self.w_ur_lon.text()), float(self.w_ur_lat.text())])
@@ -488,24 +524,24 @@ class Form(QWidget):
             pass
 
     def createSimsClicked(self):
+        """
 
-        func_name =  __prog__ + ' createSimsClicked'
-
-        hist_start_year = int(self.combo09s.currentText())
-        hist_end_year   = int(self.combo09e.currentText())
+        """
+        hist_start_year = int(self.w_combo09s.currentText())
+        hist_end_year   = int(self.w_combo09e.currentText())
         if hist_start_year > hist_end_year:
             print('Historic end year must be greater or equal to the start year')
             return
 
-        fut_start_year = int(self.combo11s.currentText())
-        fut_end_year   = int(self.combo11e.currentText())
+        fut_start_year = int(self.w_combo11s.currentText())
+        fut_end_year   = int(self.w_combo11e.currentText())
         if fut_start_year > fut_end_year:
             print('Simulation end year must be greater or equal to the start year')
             return
 
         # overides ECOSSE file creation
         # =============================
-        study = self.combo00a.currentText()
+        study = self.w_combo00a.currentText()
         study = study.replace(' ','_')
         self.setup['study'] = study
         calculate_grid_cell(self)
@@ -513,15 +549,15 @@ class Form(QWidget):
         if self.w_all_regions.isChecked():
             all_generate_banded_sims(self)
         else:
-            region = self.combo00a.currentText()
-            crop_name = self.combo00b.currentText()
+            region = self.w_combo00a.currentText()
+            crop_name = self.w_combo00b.currentText()
             generate_banded_sims(self, region, crop_name)
             write_study_definition_file(self)
 
     def runEcosse(self):
+        """
 
-        func_name =  __prog__ + ' runEcosse'
-
+        """
         calculate_grid_cell(self)   # assigns value to req_resol_deg
         set_region_study(self)      # sets simulation root directory
         run_ecosse_wrapper(self)
@@ -547,27 +583,27 @@ class Form(QWidget):
             self.w_lbl17.setText(check_rotation_json_fname(self))
 
     def changeConfigFile(self):
-        '''
+        """
         permits change of configuration file
-        '''
+        """
         change_config_file(self)
 
     def cancelClicked(self):
+        """
 
-        func_name =  __prog__ + ' cancelClicked'
-
+        """
         exit_clicked(self, write_config_flag = False)
 
     def exitClicked(self):
-        '''
+        """
         exit cleanly
-        '''
+        """
         exit_clicked(self)
 
     def changeCrop(self):
-        '''
+        """
         dummy
-        '''
+        """
         pass
 
 def main():

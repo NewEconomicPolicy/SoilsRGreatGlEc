@@ -128,7 +128,7 @@ def change_config_file(form, new_study = None):
     identify and read the new configuration file
     """
     if new_study is None:
-        new_study = form.combo00s.currentText()
+        new_study = form.w_combo00s.currentText()
 
     new_config = form.setup['applic_str'] + '_' + new_study
     config_file = normpath(form.setup['config_dir'] + '/' + new_config + '.json')
@@ -162,10 +162,10 @@ def build_and_display_studies(form):
 
     # display studies list
     # ====================
-    if hasattr(form, 'combo00s'):
-        form.combo00s.clear()
+    if hasattr(form, 'w_combo00s'):
+        form.w_combo00s.clear()
         for study in studies:
-            form.combo00s.addItem(study)
+            form.w_combo00s.addItem(study)
 
     return config_files
 
@@ -486,18 +486,18 @@ def read_config_file(form):
     form.w_lbl14.setText(check_cultiv_json_fname(form))  # displays file info
     form.w_lbl16.setText(rota_json_fname)
     form.w_lbl17.setText(check_rotation_json_fname(form))  # displays file info
-    form.combo00a.setCurrentIndex(config[grp]['regionIndx'])
+    form.w_combo00a.setCurrentIndex(config[grp]['regionIndx'])
 
     # make sure index is within the permissable range of entries
     wthr_rsrce_indx = config[grp]['wthrRsrce']
     if not isinstance(wthr_rsrce_indx, int):
         wthr_rsrce_indx = 0  # sets to CRU, the default
 
-    nitems = form.combo10w.count()
+    nitems = form.w_combo10w.count()
     if wthr_rsrce_indx >= 0 and wthr_rsrce_indx < nitems:
-        form.combo10w.setCurrentIndex(wthr_rsrce_indx)
+        form.w_combo10w.setCurrentIndex(wthr_rsrce_indx)
 
-    wthr_rsrce = form.combo10w.currentText()
+    wthr_rsrce = form.w_combo10w.currentText()
     change_weather_resource(form, wthr_rsrce)
 
     # common area
@@ -521,13 +521,13 @@ def read_config_file(form):
     study, dummy = splitext(remainder)
     form.w_study.setText(study.lstrip('_'))
 
-    form.combo09s.setCurrentIndex(hist_strt_year)
-    form.combo09e.setCurrentIndex(hist_end_year)
-    form.combo10.setCurrentIndex(scenario)
-    form.combo11s.setCurrentIndex(sim_strt_year)
-    form.combo11e.setCurrentIndex(sim_end_year)
-    form.combo00b.setCurrentIndex(config[grp]['cropIndx'])
-    form.combo16.setCurrentIndex(config[grp]['gridResol'])
+    form.w_combo09s.setCurrentIndex(hist_strt_year)
+    form.w_combo09e.setCurrentIndex(hist_end_year)
+    form.w_combo10.setCurrentIndex(scenario)
+    form.w_combo11s.setCurrentIndex(sim_strt_year)
+    form.w_combo11e.setCurrentIndex(sim_end_year)
+    form.w_combo00b.setCurrentIndex(config[grp]['cropIndx'])
+    form.w_combo16.setCurrentIndex(config[grp]['gridResol'])
     form.w_equimode.setText(str(config[grp]['eqilMode']))
 
     # record weather settings
@@ -655,14 +655,14 @@ def write_config_file(form):
     # print('Weather choice Id: {}'.format(form.w_weather_choice.checkedId()))
     config = {
         'cmnGUI': {
-            'cropIndx': form.combo00b.currentIndex(),
-            'cruStrtYr': form.combo09s.currentIndex(),
-            'cruEndYr': form.combo09e.currentIndex(),
-            'climScnr': form.combo10.currentIndex(),
-            'futStrtYr': form.combo11s.currentIndex(),
-            'futEndYr': form.combo11e.currentIndex(),
+            'cropIndx': form.w_combo00b.currentIndex(),
+            'cruStrtYr': form.w_combo09s.currentIndex(),
+            'cruEndYr': form.w_combo09e.currentIndex(),
+            'climScnr': form.w_combo10.currentIndex(),
+            'futStrtYr': form.w_combo11s.currentIndex(),
+            'futEndYr': form.w_combo11e.currentIndex(),
             'eqilMode': form.w_equimode.text(),
-            'gridResol': form.combo16.currentIndex()
+            'gridResol': form.w_combo16.currentIndex()
         },
         'minGUI': {
             'allRegionsFlag': form.w_all_regions.isChecked(),
@@ -678,8 +678,8 @@ def write_config_file(form):
             'perenCrops': form.w_use_peren.isChecked(),
             'yearFrom' : form.w_yr_from.text(),
             'rotationFlag': form.w_crop_rota.isChecked(),
-            'regionIndx': form.combo00a.currentIndex(),
-            'wthrRsrce': form.combo10w.currentIndex()
+            'regionIndx': form.w_combo00a.currentIndex(),
+            'wthrRsrce': form.w_combo10w.currentIndex()
         }
     }
     if isfile(config_file):

@@ -52,7 +52,7 @@ def write_runsites_config_file(form):
     # overwrite config file  TODO:  # config['Simulations']['resume_frm_prev'] = form.w_skip_sites.isChecked()
     # =====================
     sims_dir = normpath(join(form.setup['sims_dir'], form.setup['region_study']))
-    crop_name = form.combo00b.currentText()
+    crop_name = form.w_combo00b.currentText()
     config['General']['cropName'] = crop_name
     config['Simulations']['sims_dir'] = sims_dir
 

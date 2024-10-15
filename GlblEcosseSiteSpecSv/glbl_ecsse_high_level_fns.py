@@ -42,11 +42,11 @@ def all_generate_banded_sims(form, all_regions_flag = True):
 
     """
     nstudies = len(form.studies)
-    ncombo = form.combo00s.count()
-    if nstudies != ncombo:
+    nw_combo = form.w_combo00s.count()
+    if nstudies != nw_combo:
         mess = WARNING_STR + 'Option to generate simulations for all regions not available'
-        print(mess + ' - number of studies {} should match number of entries in studies combobox {}'
-                                                                                            .format(nstudies, ncombo))
+        print(mess + ' - number of studies {} should match number of entries in studies w_combobox {}'
+                                                                                            .format(nstudies, nw_combo))
         return None
 
     '''
@@ -67,15 +67,15 @@ def all_generate_banded_sims(form, all_regions_flag = True):
         for study in study_set:
             if(change_config_file(form, study)):
                 form.update()
-                region = form.combo00a.currentText()
-                crop_name = form.combo00b.currentText()
+                region = form.w_combo00a.currentText()
+                crop_name = form.w_combo00b.currentText()
                 print('\nGenerating cells for crop: {}\tregion: {}'.format(crop_name, region))
                 generate_banded_sims(form, region, crop_name)
                 write_study_definition_file(form)
     else:
-        region = form.combo00a.currentText()
+        region = form.w_combo00a.currentText()
         for crop_indx, crop_name in enumerate(form.setup['crops']):
-            form.combo00b.setCurrentIndex(crop_indx)
+            form.w_combo00b.setCurrentIndex(crop_indx)
             form.update()
             print('\nGenerating cells for crop: {}\tregion: {}'.format(crop_name, region))
             generate_banded_sims(form, region, crop_name)
@@ -157,8 +157,8 @@ def generate_banded_sims(form, region, crop_name):
     if start_from_1801:
         sim_strt_year = 1801
     else:
-        sim_strt_year = int(form.combo11s.currentText())
-    sim_end_year   = int(form.combo11e.currentText())
+        sim_strt_year = int(form.w_combo11s.currentText())
+    sim_end_year   = int(form.w_combo11e.currentText())
 
     # verify mask, sowing, yields, fertiliser NC files
     # ================================================
