@@ -46,8 +46,7 @@ def _make_lta_file(site, clim_dir):
 
     # will be copied
     # ==============
-    avemet_fn = join(clim_dir, 'AVEMET.DAT')
-    make_avemet_file(avemet_fn, site.lta_precip, site.lta_pet, site.lta_tmeann)
+    make_avemet_file(clim_dir, site.lta_precip, site.lta_pet, site.lta_tmean)
 
     return lta_ave_fn
 

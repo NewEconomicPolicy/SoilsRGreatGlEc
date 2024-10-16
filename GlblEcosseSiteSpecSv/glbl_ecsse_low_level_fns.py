@@ -547,3 +547,18 @@ def update_wthr_progress(last_time, ncompleted, nskipped, ntotal_grow, ngrowing,
         last_time = new_time
 
     return last_time
+
+
+def update_avemet_progress(last_time, wthr_rsrce, scnr, region, nwrote):
+    """
+    Update progress bar
+    """
+    new_time = time()
+    if new_time - last_time > 5:
+        mess = '\rWrote: {:=6d} Avemet files\t'.format(nwrote)
+        mess += '\twthr_rsrce: {}\tscnr:{}\tregion: {}'.format(wthr_rsrce, scnr, region)
+        stdout.flush()
+        stdout.write(mess)
+        last_time = new_time
+
+    return last_time

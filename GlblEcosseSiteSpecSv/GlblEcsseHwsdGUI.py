@@ -422,15 +422,6 @@ class Form(QWidget):
 
         return
 
-
-    def gnrtWthrClicked(self):
-        """
-        generate weather for all regions, scenarios and GCMs
-        """
-        generate_all_weather(self)
-
-        return
-
     def gnrtWthrClicked(self):
         """
         generate weather for all regions, scenarios and GCMs

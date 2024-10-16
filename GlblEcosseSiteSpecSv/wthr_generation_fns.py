@@ -21,7 +21,7 @@ from getClimGenNC import ClimGenNC
 from getClimGenFns import (fetch_WrldClim_data, open_wthr_NC_sets, get_wthr_nc_coords, join_hist_fut_to_sim_wthr)
 from make_site_spec_files_classes import MakeSiteFiles
 from prepare_ecosse_files import make_wthr_files, make_avemet_file
-from glbl_ecsse_low_level_fns import check_run_mask, set_region_study, update_wthr_progress
+from glbl_ecsse_low_level_fns import check_run_mask, set_region_study, update_wthr_progress, update_avemet_progress
 from mngmnt_fns_and_class import create_proj_data_defns, open_proj_NC_sets, close_proj_NC_sets
 from hwsd_soil_class import _gran_coords_from_lat_lon
 
@@ -49,8 +49,6 @@ def write_avemet_files(form):
         if scnr == 'hist':  # mod
             continue
 
-        region_wthr_dir = form.setup['region_wthr_dir'] + wthr_rsrce + '_' + scnr
-
         # for each region
         # ===============
         for irow, region in enumerate(form.regions['Region']):
@@ -58,6 +56,7 @@ def write_avemet_files(form):
 
             # main traversal loop
             # ===================
+            region_wthr_dir = wthr_dir_abbrv + wthr_rsrce + '_' + scnr
             clim_dir = normpath(join(sims_dir, region_wthr_dir))
 
             mess = '\nProcessing weather set: ' + wthr_rsrce + '\tScenario: ' + scnr + '\tRegion: ' + region
@@ -80,6 +79,7 @@ def write_avemet_files(form):
 
                 # there should be 300 met files plus lta_ave.txt and AVEMET.DAT
                 # =============================================================
+                last_time = update_avemet_progress(last_time, wthr_rsrce, scnr, region, nwrote)
                 if nfiles >= NEXPCTD_MET_FILES:
                     continue
                     
