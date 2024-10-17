@@ -35,85 +35,6 @@ NGRANULARITY = 120
 NEXPCTD_MET_FILES = 302
 LTA_RECS_FN = 'lta_ave.txt'
 
-def write_avemet_files(form):
-    """
-    traverse each GCM and SSP dataset group e.g. UKESM1-0-LL 585
-    """
-    print('')
-    max_cells = int(form.w_max_cells.text())
-    sims_dir = form.setup['sims_dir']
-
-    nwrote = 0
-    for wthr_set in form.weather_set_linkages['WrldClim']:
-        wthr_rsrce, scnr = wthr_set.split('_')
-        if scnr == 'hist':  # mod
-            continue
-
-        # for each region
-        # ===============
-        for irow, region in enumerate(form.regions['Region']):
-            lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions.iloc[irow][1:]
-
-            # main traversal loop
-            # ===================
-            region_wthr_dir = wthr_dir_abbrv + wthr_rsrce + '_' + scnr
-            clim_dir = normpath(join(sims_dir, region_wthr_dir))
-
-            mess = '\nProcessing weather set: ' + wthr_rsrce + '\tScenario: ' + scnr + '\tRegion: ' + region
-            mess += '\t\tabbrev: ' + wthr_dir_abbrv + '\n\tclim_dir: ' + clim_dir
-            print(mess)
-
-            if not isdir(clim_dir):
-                print(clim_dir + ' *** does not exist ***')
-                break
-
-            # step through each directory comprising ECOSSE met files
-            # =======================================================
-            last_time = time()
-            nwrote = 0
-            for drctry, subdirs, files in walk(clim_dir):
-                nfiles = len(files)
-                nsubdirs = len(subdirs)
-                if nsubdirs > 0:    # first directory has four scenarios e.g.  Y:\GlblEcssOutputsSv\EcosseSims\AfUKESM1-0-LL_126
-                    continue
-
-                # there should be 300 met files plus lta_ave.txt and AVEMET.DAT
-                # =============================================================
-                last_time = update_avemet_progress(last_time, wthr_rsrce, scnr, region, nwrote)
-                if nfiles >= NEXPCTD_MET_FILES:
-                    continue
-                    
-                # if lta_ave.txt is not present then something is wrong
-                # =====================================================
-                if LTA_RECS_FN in files:
-                    lta_ave_fn = join(drctry, LTA_RECS_FN)
-                    with open(lta_ave_fn, 'r') as flta_ave:
-
-                        lta_recs = flta_ave.readlines()
-                        vals = [float(rec.split('#')[0]) for rec in lta_recs]
-                        lta_precip, lta_tmean = vals[:12], vals[12:]
-
-                        gran_coord = split(drctry)[1]
-                        gran_lat = int(gran_coord.split('_')[0])
-                        cell_lat = 90.0 - gran_lat / NGRANULARITY
-                        lta_pet = thornthwaite(lta_tmean, cell_lat)
-
-                        make_avemet_file(drctry, lta_precip, lta_pet, lta_tmean)
-                        nwrote += 1
-                else:
-                    print(WARNING_STR + LTA_RECS_FN + ' file should be present in ' + drctry)
-
-            if nwrote >= max_cells:
-                print('\nFinished checking having written {} AVEMET.DAT files'.format(nwrote))
-                break
-
-            print('Completed Region: ' + region)
-
-        print('Completed weather set: ' + wthr_rsrce + '\tScenario: ' + scnr + '\n')
-
-    print('Finished AVEMET creation - checked: {} cells'.format(nwrote))
-    return
-
 def generate_all_weather(form, all_regions_flag = True):
     """
 
@@ -163,11 +84,16 @@ def generate_all_weather(form, all_regions_flag = True):
 
         # for each region
         # ===============
+        MAX_BANDS = 5
         for irow, region in enumerate(form.regions['Region']):
+            '''
             if region != 'North America':  # mod
                 continue
+            '''
+            mess = '\nProcessing weather set: ' + this_gcm + '\tScenario: ' + scnr + '\tRegion: ' + region
+            mess += '\tCrop: ' + crop_name
+            print(mess)
 
-            print('\nProcessing weather set: ' + this_gcm + '\tScenario: ' + scnr + '\tRegion: ' + region)
             lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions.iloc[irow][1:]
             bbox =  list([lon_ll, lat_ll, lon_ur, lat_ur])
 
@@ -183,26 +109,26 @@ def generate_all_weather(form, all_regions_flag = True):
                 print('Nothing to grow for this AOI')
                 return
 
+            nbands = lat_ur_indx - lat_ll_indx + 1
+            print('Will process {} bands'.format(nbands))
+
             #  open required NC sets
             # ======================
+
             open_proj_NC_sets(mask_defn, yield_defn, dates_defn, fert_defns)
             hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
 
             # main AOI traversal loops - outer: North to South, inner: East to West
             # ========================
+            ncmpltd, warning_count, ngrowing, nno_grow, nalrdys = 5*[0]      # for each band
             last_time = time()
-            ncmpltd = 0
-            nskipped = 0
-            nalready = 0
-            warning_count = 0
-            ngrowing = 0; nno_grow = 0
-
-            # for each band
-            # =============
             for nband, lat_indx in enumerate(range(lat_ur_indx, lat_ll_indx - 1, -1)):
+                if nband > MAX_BANDS:
+                    break
 
                 lat = mask_defn.lats[lat_indx]
-                ngrow_this_band = 0
+
+                ngrow_this_band, nalrdys_this_band, nskipped = 3*[0]
 
                 for lon_indx in range(lon_ll_indx, lon_ur_indx + 1):
                     lon = mask_defn.lons[lon_indx]
@@ -213,12 +139,12 @@ def generate_all_weather(form, all_regions_flag = True):
                         nno_grow += 1
                         continue
 
-                    already_flag, dummy, met_fnames = _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, nalready)
-                    if already_flag:
-                        continue
-
-                    ngrowing += 1
                     ngrow_this_band += 1
+
+                    alrdy_flag, dummy, met_fnames = _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon)
+                    if alrdy_flag:
+                        nalrdys_this_band += 1
+                        continue
 
                     form.setup['bbox'] = list([lon - resol_d2, lat - resol_d2, lon + resol_d2, lat + resol_d2])
 
@@ -260,14 +186,15 @@ def generate_all_weather(form, all_regions_flag = True):
 
                 # finished this latitude band - report progress
                 # =============================================
-                '''
-                mess = 'Processed band {} of {} bands for lat: {}\tN growing locations: {}'.format(nband,
-                                                                                nbands, lat, ngrow_this_band)
+                ngrowing += ngrow_this_band
+                nalrdys += nalrdys_this_band
+                mess = '\tBand {} with lat: {}\t# growing locations: {}\t'.format(nband, lat, ngrow_this_band)
+                mess += 'already existing: {}\tskipped: {}'.format(nalrdys_this_band, nskipped)
                 form.lgr.info(mess)
-                print('\n' + mess)
-                '''
+                print(mess)
+
                 if ncmpltd >= max_cells:
-                    print('\nFinishing run after {} cells completed\tband: {}'.format(ncmpltd, nband))
+                    print('\nFinished checking after {} cells completed\tband: {}'.format(ncmpltd, nband))
                     break
 
             # close NC files
@@ -279,8 +206,8 @@ def generate_all_weather(form, all_regions_flag = True):
 
             ntotal_str = format_string('%d', ntotal_grow, grouping=True)
             ntotal_prcnt = round(100 * (ngrowing / ntotal_grow), 2)
-            mess = 'Completed Region: {}\tCrop: {}\tLocations - '.format(region, crop_name)
-            mess += 'growing: {}\tno grow: {}\ttotal: {}\t {}%'.format(ngrowing, nno_grow, ntotal_str, ntotal_prcnt)
+            mess = 'Completed Region: ' + region + '\tLocations - growing: '
+            mess += '{}\tno grow: {}\ttotal: {}\t {}%'.format(ngrowing, nno_grow, ntotal_str, ntotal_prcnt)
             print(mess)
 
             if QUICK_FLAG:
@@ -301,7 +228,7 @@ def fetch_hist_lta_from_lat_lon(sims_dir, climgen, lat, lon):
 
     return integrity_flag, hist_lta_recs, met_fnames
 
-def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag, nalready = 0):
+def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag=False):
     """
     check existence and integrity of weather cell
     """
@@ -326,6 +253,84 @@ def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag, nalready
 
                 integrity_flag = True
                 met_fnames = fns[2:]
-                nalready += 1
 
     return integrity_flag, hist_lta_recs, met_fnames
+
+def write_avemet_files(form):
+    """
+    traverse each GCM and SSP dataset group e.g. UKESM1-0-LL 585
+    """
+    print('')
+    max_cells = int(form.w_max_cells.text())
+    sims_dir = form.setup['sims_dir']
+
+    nwrote = 0
+    for wthr_set in form.weather_set_linkages['WrldClim']:
+        wthr_rsrce, scnr = wthr_set.split('_')
+        if scnr == 'hist':  # mod
+            continue
+
+        # for each region
+        # ===============
+        for irow, region in enumerate(form.regions['Region']):
+            lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions.iloc[irow][1:]
+
+            # main traversal loop
+            # ===================
+            region_wthr_dir = wthr_dir_abbrv + wthr_rsrce + '_' + scnr
+            clim_dir = normpath(join(sims_dir, region_wthr_dir))
+
+            mess = '\nProcessing weather set: ' + wthr_rsrce + '\tScenario: ' + scnr + '\tRegion: ' + region
+            mess += '\t\tabbrev: ' + wthr_dir_abbrv + '\n\tclim_dir: ' + clim_dir
+            print(mess)
+
+            if not isdir(clim_dir):
+                print(clim_dir + ' *** does not exist ***')
+                break
+
+            # step through each directory comprising ECOSSE met files
+            # =======================================================
+            last_time = time()
+            nwrote = 0
+            for drctry, subdirs, files in walk(clim_dir):
+                nfiles = len(files)
+                nsubdirs = len(subdirs)
+                if nsubdirs > 0:  # first directory has four scenarios e.g.  Y:\GlblEcssOutputsSv\EcosseSims\AfUKESM1-0-LL_126
+                    continue
+
+                # there should be 300 met files plus lta_ave.txt and AVEMET.DAT
+                # =============================================================
+                last_time = update_avemet_progress(last_time, wthr_rsrce, scnr, region, nwrote)
+                if nfiles >= NEXPCTD_MET_FILES:
+                    continue
+
+                # if lta_ave.txt is not present then something is wrong
+                # =====================================================
+                if LTA_RECS_FN in files:
+                    lta_ave_fn = join(drctry, LTA_RECS_FN)
+                    with open(lta_ave_fn, 'r') as flta_ave:
+
+                        lta_recs = flta_ave.readlines()
+                        vals = [float(rec.split('#')[0]) for rec in lta_recs]
+                        lta_precip, lta_tmean = vals[:12], vals[12:]
+
+                        gran_coord = split(drctry)[1]
+                        gran_lat = int(gran_coord.split('_')[0])
+                        cell_lat = 90.0 - gran_lat / NGRANULARITY
+                        lta_pet = thornthwaite(lta_tmean, cell_lat)
+
+                        make_avemet_file(drctry, lta_precip, lta_pet, lta_tmean)
+                        nwrote += 1
+                else:
+                    print(WARNING_STR + LTA_RECS_FN + ' file should be present in ' + drctry)
+
+            if nwrote >= max_cells:
+                print('\nFinished checking having written {} AVEMET.DAT files'.format(nwrote))
+                break
+
+            print('Completed Region: ' + region)
+
+        print('Completed weather set: ' + wthr_rsrce + '\tScenario: ' + scnr + '\n')
+
+    print('Finished AVEMET creation - checked: {} cells'.format(nwrote))
+    return
