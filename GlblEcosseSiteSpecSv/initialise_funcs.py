@@ -13,7 +13,7 @@ __version__ = '0.0.0'
 # Version history
 # ---------------
 # 
-from os.path import lexists, join, normpath, exists, isfile, isdir, split, splitext
+from os.path import join, normpath, exists, isfile, isdir, split, splitext
 from os import makedirs, getcwd, name as os_name
 from json import load as json_load, dump as json_dump
 from json.decoder import JSONDecodeError
@@ -289,14 +289,19 @@ def _read_setup_file(applic_str):
     # ===========================================================
     check_hwsd_integrity(hwsd_dir)
 
-    if not lexists(log_dir):
+    if not isdir(log_dir):
         makedirs(log_dir)
 
-    if not lexists(config_dir):
+    if not isdir(config_dir):
         makedirs(config_dir)
 
     if not isdir(sims_dir):
-        makedirs(sims_dir)
+        try:
+            makedirs(sims_dir)
+        except BaseException as err:
+            print(ERROR_STR + str(err) + '\n\tmaking sims_dir ' + sims_dir)
+            sleep(sleepTime)
+            exit(0)
 
     # file comprising world regions
     # ============================
@@ -309,7 +314,7 @@ def _read_setup_file(applic_str):
 
     # weather is crucial
     # ==================
-    if not lexists(weather_dir):
+    if not isdir(weather_dir):
         print(ERROR_STR + 'reading {}\tClimate path {} must exist'.format(setup_file, weather_dir))
         sleep(sleepTime)
         exit(0)
@@ -317,7 +322,7 @@ def _read_setup_file(applic_str):
     # location of Ecosse files e.g. fnames.dat
     # ========================================
     ecosse_fpath = join(proj_path, 'Ecosse_input_files')
-    if not lexists(ecosse_fpath):
+    if not isdir(ecosse_fpath):
         print(ERROR_STR + 'reading {}\tEcosse path {} must exist'.format(setup_file, ecosse_fpath))
         sleep(sleepTime)
         exit(0)
