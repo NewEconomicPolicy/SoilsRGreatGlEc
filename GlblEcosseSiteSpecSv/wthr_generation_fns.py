@@ -33,6 +33,7 @@ QUICK_FLAG = False       # forces break from loops after max cells reached in fi
 
 NGRANULARITY = 120
 NEXPCTD_MET_FILES = 302
+MAX_BANDS = 500000
 LTA_RECS_FN = 'lta_ave.txt'
 
 SPACER_LEN = 12
@@ -86,7 +87,6 @@ def generate_all_weather(form, all_regions_flag = True):
 
         # for each region
         # ===============
-        MAX_BANDS = 5
         for irow, region in enumerate(form.regions['Region']):
             '''
             if region != 'North America':  # mod
