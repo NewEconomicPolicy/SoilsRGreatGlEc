@@ -11,7 +11,7 @@ __version__ = '1.0.00'
 __prog__ = 'prepare_ecosse_files.py'
 
 from os import makedirs
-from os.path import lexists, basename
+from os.path import isdir, basename, join, isdir
 from shutil import copyfile
 from glbl_ecss_cmmn_funcs import write_kml_file, write_signature_file, write_manifest_file
 
@@ -54,7 +54,7 @@ def make_ecosse_files(site, climgen, soil_defn, fert_recs, plant_day, harvest_da
             identifer = 'lat{0:0=7d}_lon{1:0=7d}_mu{2:0=5d}_s{3:0=2d}'.format(gran_lat, gran_lon,
                                                                               mu_global, soil_num + 1)
             sim_dir = join(site.sims_dir, climgen.region_study, identifer)
-            if not lexists(sim_dir):
+            if not isdir(sim_dir):
                 makedirs(sim_dir)
 
             site.create_site_soil_layers(soil)
