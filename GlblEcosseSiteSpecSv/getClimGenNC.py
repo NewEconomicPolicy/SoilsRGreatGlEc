@@ -57,10 +57,8 @@ class ClimGenNC(object,):
 
     def __init__(self, form, region, crop_name, sim_start_year, sim_end_year= -999, this_gcm=None , scnr=None):
         """
-
+        C
         """
-        func_name =  __prog__ +  ' ClimGenNC __init__'
-
         if form.w_mnthly.isChecked():   # monthly timestep
             sim_mnthly_flag = True
         else:

@@ -8,7 +8,6 @@
 #-------------------------------------------------------------------------------
 #
 """
-
 __prog__ = 'glbl_ecsse_high_level_fns.py'
 __version__ = '0.0.1'
 __author__ = 's03mm5'
@@ -20,14 +19,15 @@ from hwsd_bil import HWSD_bil
 from hwsd_soil_class import HWSD_soil_defn
 
 from getClimGenNC import ClimGenNC
-from getClimGenFns import (check_clim_nc_limits, fetch_WrldClim_data, open_wthr_NC_sets, get_wthr_nc_coords,
-                           join_hist_fut_to_sim_wthr)
+from getClimGenFns import check_clim_nc_limits, open_wthr_NC_sets, get_wthr_nc_coords
 from make_site_spec_files_classes import MakeSiteFiles
 from prepare_ecosse_files import make_ecosse_files
+
 from glbl_ecss_cmmn_funcs import write_study_definition_file
 from glbl_ecsse_low_level_fns import Cell_hwsd_data_frame, check_run_mask, make_fert_recs, set_region_study, update_progress
 from mngmnt_fns_and_class import create_proj_data_defns, open_proj_NC_sets, close_proj_NC_sets
 from runsites_high_level import run_ecosse_wrapper
+
 from shape_funcs import calculate_area, MakeBboxesNitroInpts
 from initialise_funcs import change_config_file
 from wthr_generation_fns import fetch_hist_lta_from_lat_lon

@@ -11,84 +11,9 @@ __version__ = '1.0.00'
 __prog__ = 'prepare_ecosse_files.py'
 
 from os import makedirs
-from os.path import lexists, join, normpath, basename
+from os.path import lexists, basename
 from shutil import copyfile
-
-from prepare_ecosse_low_level import fetch_long_term_ave_wthr_recs, make_met_files
 from glbl_ecss_cmmn_funcs import write_kml_file, write_signature_file, write_manifest_file
-from hwsd_soil_class import _gran_coords_from_lat_lon
-
-SPACER_LEN = 12
-
-def _make_line(data, comment):
-    """
-
-    """
-    spacer_len = max(SPACER_LEN - len(data), 2)
-    spacer = ' ' * spacer_len
-    
-    return '{}{}# {}\n'.format(data, spacer, comment)
-
-def _make_lta_file(site, clim_dir):
-    """
-    write long term average climate section of site.txt file
-    """
-    lines = []
-    for precip, month in zip(site.lta_precip, site.months):
-        lines.append(_make_line('{}'.format(precip),'{} long term average monthly precipitation [mm]'.format(month)))
-
-    for tmean, month in zip(site.lta_tmean, site.months):
-        lines.append(_make_line('{}'.format(tmean),'{} long term average monthly temperature [mm]'.format(month)))
-
-    lta_ave_fn = join(clim_dir, 'lta_ave.txt')
-    with open(lta_ave_fn, 'w') as fhand:
-        fhand.writelines(lines)
-
-    # will be copied
-    # ==============
-    make_avemet_file(clim_dir, site.lta_precip, site.lta_pet, site.lta_tmean)
-
-    return lta_ave_fn
-
-def make_avemet_file(clim_dir, lta_precip, lta_pet, lta_tmean):
-    """
-    will be copied
-    """
-    avemet_dat = join(clim_dir, 'AVEMET.DAT')
-    with open(avemet_dat, 'w') as fobj:
-        for imnth, (precip, pet, tmean) in enumerate(zip(lta_precip, lta_pet, lta_tmean)):
-            fobj.write('{} {} {} {}\n'.format(imnth + 1, precip, pet, tmean))
-
-    return
-
-def make_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_fut):
-    """
-    generate ECOSSE historic and future weather data
-    """
-    func_name = 'make_ecosse_files'
-
-    if not isinstance(pettmp_hist, dict) or not isinstance(pettmp_fut, dict):
-        print('Bad input to ' + func_name)
-        return
-
-    gran_lat, gran_lon = _gran_coords_from_lat_lon(lat, lon)
-
-    # calculate historic average weather
-    # ==================================
-    hist_lta_precip, hist_lta_tmean, hist_weather_recs = fetch_long_term_ave_wthr_recs(climgen, pettmp_hist)
-
-    # write a single set of met files for all simulations for this grid cell
-    # ======================================================================
-    gran_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
-    clim_dir = normpath( join(site.sims_dir, climgen.region_wthr_dir, gran_coord) )
-    met_fnames = make_met_files(clim_dir, lat, climgen, pettmp_fut)     # future weather
-
-    # create additional weather related files from already existing met files
-    # =======================================================================
-    irc = climgen.create_FutureAverages(clim_dir, lat, site, hist_lta_precip, hist_lta_tmean)
-    lta_ave_fn = _make_lta_file(site, clim_dir)
-
-    return
 
 def make_ecosse_files(site, climgen, soil_defn, fert_recs, plant_day, harvest_day, yield_val,
                                                                                 hist_lta_recs, met_fnames):
@@ -97,9 +22,6 @@ def make_ecosse_files(site, climgen, soil_defn, fert_recs, plant_day, harvest_da
     where each site has one or more soils and each soil can have one or more dominant soils
     pettmp_grid_cell is climate data for this soil grid point
     """
-    func_name = 'make_ecosse_files'
-    pettmp_fut,  hist_lta_precip, hist_lta_tmean = 3*[None]
-
     gran_lat = soil_defn.gran_lat
     gran_lon = soil_defn.gran_lon
     lat = float(soil_defn.lat)

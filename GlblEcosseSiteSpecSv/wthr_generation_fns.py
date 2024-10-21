@@ -15,13 +15,13 @@ __author__ = 's03mm5'
 from time import time
 from locale import format_string
 from os.path import join, normpath, isdir, split
-from os import listdir, walk
+from os import listdir, walk, makedirs
 
 from getClimGenNC import ClimGenNC
 from getClimGenFns import (fetch_WrldClim_data, open_wthr_NC_sets, get_wthr_nc_coords, join_hist_fut_to_sim_wthr)
 from make_site_spec_files_classes import MakeSiteFiles
-from prepare_ecosse_files import make_wthr_files, make_avemet_file
 from glbl_ecsse_low_level_fns import check_run_mask, set_region_study, update_wthr_progress, update_avemet_progress
+from prepare_ecosse_low_level import fetch_long_term_ave_wthr_recs, make_met_files
 from mngmnt_fns_and_class import create_proj_data_defns, open_proj_NC_sets, close_proj_NC_sets
 from hwsd_soil_class import _gran_coords_from_lat_lon
 
@@ -34,6 +34,8 @@ QUICK_FLAG = False       # forces break from loops after max cells reached in fi
 NGRANULARITY = 120
 NEXPCTD_MET_FILES = 302
 LTA_RECS_FN = 'lta_ave.txt'
+
+SPACER_LEN = 12
 
 def generate_all_weather(form, all_regions_flag = True):
     """
@@ -128,7 +130,7 @@ def generate_all_weather(form, all_regions_flag = True):
 
                 lat = mask_defn.lats[lat_indx]
 
-                ngrow_this_band, nalrdys_this_band, nskipped = 3*[0]
+                ngrow_this_band, nalrdys_this_band, nnodata, noutbnds = 4*[0]
 
                 for lon_indx in range(lon_ll_indx, lon_ur_indx + 1):
                     lon = mask_defn.lons[lon_indx]
@@ -153,33 +155,29 @@ def generate_all_weather(form, all_regions_flag = True):
                     hist_lat_indx, hist_lon_indx = get_wthr_nc_coords(climgen.hist_wthr_set_defn, lat, lon)
                     fut_lat_indx, fut_lon_indx   = get_wthr_nc_coords(climgen.fut_wthr_set_defn, lat, lon)
                     if hist_lat_indx < 0 or fut_lat_indx < 0:
-                        nskipped += 1
+                        noutbnds += 1
                         continue
 
                     # Get future and historic weather data
                     # ====================================
                     pettmp_hist = fetch_WrldClim_data(form.lgr, lat, lon, climgen, hist_wthr_dsets,
-                                                      hist_lat_indx, hist_lon_indx, hist_flag = True)
+                                                                    hist_lat_indx, hist_lon_indx, hist_flag = True)
                     pettmp_fut =  fetch_WrldClim_data(form.lgr, lat, lon, climgen, fut_wthr_dsets,
-                                                      fut_lat_indx, fut_lon_indx)
+                                                                                        fut_lat_indx, fut_lon_indx)
                     if pettmp_fut is None or pettmp_hist is None:
-                        nskipped += 1
-                        continue
-
-                    # create weather for simulated years
-                    # ==================================
-                    if len(pettmp_fut) == 0 or len(pettmp_hist) == 0:
-                        ret_code = 'check weather at lat: {}\tlon:{}'.format(lat, lon)
-                        form.lgr.info(ret_code)
-                        warning_count += 1
+                        pettmp_sim = None
+                        nnodata += 1
                     else:
-                        pettmp_sim = join_hist_fut_to_sim_wthr(climgen, pettmp_hist, pettmp_fut, start_from_1801)
-                        site_obj = MakeSiteFiles(form, climgen, comments=True)
-                        make_wthr_files(site_obj, lat, lon, climgen, pettmp_hist, pettmp_sim)
-                        ncmpltd += 1
-                        ntotal_wrttn += 1
+                        pettmp_sim = join_hist_fut_to_sim_wthr(climgen, pettmp_hist, pettmp_fut)
 
-                    last_time = update_wthr_progress(last_time, ncmpltd, nskipped, ntotal_grow, ngrowing, nno_grow,
+                    # create weather
+                    # ==============
+                    site_obj = MakeSiteFiles(form, climgen, comments=True)
+                    make_wthr_files(site_obj, lat, lon, climgen, pettmp_hist, pettmp_sim)
+                    ncmpltd += 1
+                    ntotal_wrttn += 1
+
+                    last_time = update_wthr_progress(last_time, ncmpltd, nnodata, ntotal_grow, ngrowing, nno_grow,
                                                                                                                 region)
                     if ncmpltd >= max_cells:
                         break
@@ -189,7 +187,7 @@ def generate_all_weather(form, all_regions_flag = True):
                 ngrowing += ngrow_this_band
                 nalrdys += nalrdys_this_band
                 mess = '\tBand {} with lat: {}\t# growing locations: {}\t'.format(nband, lat, ngrow_this_band)
-                mess += 'already existing: {}\tskipped: {}'.format(nalrdys_this_band, nskipped)
+                mess += 'already existing: {}\tskipped: {}'.format(nalrdys_this_band, nnodata)
                 form.lgr.info(mess)
                 print(mess)
 
@@ -219,6 +217,46 @@ def generate_all_weather(form, all_regions_flag = True):
 
     return
 
+
+def make_avemet_file(clim_dir, lta_precip, lta_pet, lta_tmean):
+    """
+    will be copied
+    """
+    avemet_dat = join(clim_dir, 'AVEMET.DAT')
+    with open(avemet_dat, 'w') as fobj:
+        for imnth, (precip, pet, tmean) in enumerate(zip(lta_precip, lta_pet, lta_tmean)):
+            fobj.write('{} {} {} {}\n'.format(imnth + 1, precip, pet, tmean))
+
+    return
+
+def make_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_sim):
+    """
+    generate ECOSSE historic and future weather data
+    """
+    gran_lat, gran_lon = _gran_coords_from_lat_lon(lat, lon)
+    gran_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
+    clim_dir = normpath(join(site.sims_dir, climgen.region_wthr_dir, gran_coord))
+    if not isdir(clim_dir):
+        makedirs(clim_dir)  # always create even if no weather data
+
+    if pettmp_hist is None:
+        return
+
+    # calculate historic average weather
+    # ==================================
+    hist_lta_precip, hist_lta_tmean, hist_weather_recs = fetch_long_term_ave_wthr_recs(climgen, pettmp_hist)
+
+    # write a single set of met files for all simulations for this grid cell
+    # ======================================================================
+    met_fnames = make_met_files(clim_dir, lat, climgen, pettmp_sim)  # future weather
+
+    # create additional weather related files from already existing met files
+    # =======================================================================
+    irc = climgen.create_FutureAverages(clim_dir, lat, site, hist_lta_precip, hist_lta_tmean)
+    lta_ave_fn = _make_lta_file(site, clim_dir)
+
+    return
+
 def fetch_hist_lta_from_lat_lon(sims_dir, climgen, lat, lon):
     """
     check existence of weather cell
@@ -231,6 +269,8 @@ def fetch_hist_lta_from_lat_lon(sims_dir, climgen, lat, lon):
 def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag=False):
     """
     check existence and integrity of weather cell
+    allowable criteria are 1) a full set of weather files, namely 300 met files e.g. met2014s.txt, lta_ave.txt and AVEMET.DAT
+                           2) an empty directory
     """
     integrity_flag = False
     hist_lta_recs = None
@@ -241,18 +281,22 @@ def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag=False):
     if isdir(clim_dir):
         fns = listdir(clim_dir)
         nfiles = len(fns)
-        if nfiles >= 302:
-            if 'lta_ave.txt' in fns:
-                if read_lta_flag:
-                    lta_ave_fn = join(clim_dir, 'lta_ave.txt')
-                    hist_lta_recs = []
-                    with open(lta_ave_fn, 'r') as fave:
-                        for line in fave:
-                            line = line.rstrip()  # strip out all tailing whitespace
-                            hist_lta_recs.append(line)
-
+        if nfiles ==0 or nfiles >= 302:
+            if nfiles == 0:
                 integrity_flag = True
-                met_fnames = fns[2:]
+                hist_lta_recs, met_fnames = None, None
+            else:
+                if 'lta_ave.txt' in fns:
+                    if read_lta_flag:
+                        lta_ave_fn = join(clim_dir, 'lta_ave.txt')
+                        hist_lta_recs = []
+                        with open(lta_ave_fn, 'r') as fave:
+                            for line in fave:
+                                line = line.rstrip()  # strip out all tailing whitespace
+                                hist_lta_recs.append(line)
+
+                    integrity_flag = True
+                    met_fnames = fns[2:]
 
     return integrity_flag, hist_lta_recs, met_fnames
 
@@ -334,3 +378,38 @@ def write_avemet_files(form):
 
     print('Finished AVEMET creation - checked: {} cells'.format(nwrote))
     return
+
+def _make_lta_file(site, clim_dir):
+    """
+    write long term average climate section of site.txt file
+    """
+
+    lines = []
+    lta_precip, lta_tmean = site.lta_precip, site.lta_tmean
+    if lta_precip is None or lta_tmean is None:
+        return
+
+    for precip, month in zip(lta_precip, site.months):
+        lines.append(_make_line('{}'.format(precip), '{} long term average monthly precipitation [mm]'.format(month)))
+
+    for tmean, month in zip(lta_tmean, site.months):
+        lines.append(_make_line('{}'.format(tmean), '{} long term average monthly temperature [mm]'.format(month)))
+
+    lta_ave_fn = join(clim_dir, 'lta_ave.txt')
+    with open(lta_ave_fn, 'w') as fhand:
+        fhand.writelines(lines)
+
+    # will be copied
+    # ==============
+    make_avemet_file(clim_dir, site.lta_precip, site.lta_pet, site.lta_tmean)
+
+    return lta_ave_fn
+
+def _make_line(data, comment):
+    """
+
+    """
+    spacer_len = max(SPACER_LEN - len(data), 2)
+    spacer = ' ' * spacer_len
+
+    return '{}{}# {}\n'.format(data, spacer, comment)
