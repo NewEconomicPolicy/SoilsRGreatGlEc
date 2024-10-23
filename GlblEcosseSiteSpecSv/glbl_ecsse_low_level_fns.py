@@ -151,7 +151,7 @@ def check_cultiv_json_fname(form):
         cultiv_pattern = cultiv_content[cultiv_key]
         mess = 'Cultivation input file is valid'
     else:
-        mess = 'Key {} must be present in {}'.format(cultiv_key, cultiv_json_fname)
+        mess = WARNING_STR + 'Key ' + cultiv_key + ' must be present in Cultivation file'
         cultiv_pattern = None
 
     form.cultiv_pattern = cultiv_pattern
@@ -547,7 +547,6 @@ def update_wthr_progress(last_time, ncompleted, nskipped, ntotal_grow, ngrowing,
         last_time = new_time
 
     return last_time
-
 
 def update_avemet_progress(last_time, wthr_rsrce, scnr, region, nwrote):
     """

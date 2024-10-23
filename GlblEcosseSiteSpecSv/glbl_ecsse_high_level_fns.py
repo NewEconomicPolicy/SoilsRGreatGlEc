@@ -91,7 +91,6 @@ def generate_banded_sims(form, region, crop_name):
     """
     setlocale(LC_ALL, '')
     year_from = int(form.w_yr_from.text())
-
     glbl_n_flag = False
     if form.w_glbl_n_inpts.isChecked() and form.glbl_n_inpts is None:
         if form.cntries_defn is None:
@@ -286,7 +285,7 @@ def generate_banded_sims(form, region, crop_name):
                     warning_count += 1
                     continue
 
-                site_obj = MakeSiteFiles(form, climgen, comments = True)
+                site_obj = MakeSiteFiles(form, climgen, comments=True)
                 make_ecosse_files(site_obj, climgen, soil_defn, fert_recs, plant_day, harvest_day,
                                                                          yield_val, hist_lta_recs, met_fnames)
                 ncompleted += 1

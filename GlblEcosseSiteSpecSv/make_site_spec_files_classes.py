@@ -40,6 +40,9 @@ def _residues_incorporate(cultiv_pattern, nyears):
     return list of residues incorporated flags for each year
     """
     residues_incorp = []
+    if cultiv_pattern is None:
+        return residues_incorp
+
     cultiv_iter = iter(cultiv_pattern.keys())
     change_year = 0  # initialise to zero to force a read of the cultivation pattern
     this_key = next(cultiv_iter)

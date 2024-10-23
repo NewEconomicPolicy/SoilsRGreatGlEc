@@ -29,6 +29,8 @@ from glbl_ecsse_high_level_test_fns import generate_banded_sims_test, all_genera
 from glbl_ecsse_low_level_test_fns import check_cntry_prvnc_mappings
 from wthr_generation_fns import generate_all_weather, write_avemet_files
 
+WARNING_STR = '*** Warning *** '
+
 WDGT_SIZE_80 = 80
 WDGT_SIZE_100 = 100
 WDGT_SIZE_120 = 120
@@ -528,6 +530,10 @@ class Form(QWidget):
         fut_end_year   = int(self.w_combo11e.currentText())
         if fut_start_year > fut_end_year:
             print('Simulation end year must be greater or equal to the start year')
+            return
+
+        if self.cultiv_pattern is None:
+            print(WARNING_STR + 'No cultivation - cannot proceed')
             return
 
         # overides ECOSSE file creation

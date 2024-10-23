@@ -531,6 +531,12 @@ def read_config_file(form):
     form.w_combo10.setCurrentIndex(scenario)
     form.w_combo11s.setCurrentIndex(sim_strt_year)
     form.w_combo11e.setCurrentIndex(sim_end_year)
+
+    # TODO: an undesirable patch
+    # ==========================
+    nitems = form.w_combo11e.count()
+    form.w_combo11e.setCurrentIndex(nitems - 1)
+
     form.w_combo00b.setCurrentIndex(config[grp]['cropIndx'])
     form.w_combo16.setCurrentIndex(config[grp]['gridResol'])
     form.w_equimode.setText(str(config[grp]['eqilMode']))
