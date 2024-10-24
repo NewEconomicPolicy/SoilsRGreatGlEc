@@ -54,8 +54,8 @@ def set_region_study(form):
     region_indx = form.w_combo00a.currentIndex()
     crop_name = form.w_combo00b.currentText()
 
-    region_study = (region + '_' + crop_name).replace(' ', '_') + '_' + study
-    form.setup['region_study'] = region_study
+    region_study = (region + '_' + crop_name).replace(' ', '_') + '_' + study   # obsolete
+    form.setup['region_study'] = study
     form.setup['region_wthr_dir'] = form.regions['Wthr dir'][region_indx]
 
     return

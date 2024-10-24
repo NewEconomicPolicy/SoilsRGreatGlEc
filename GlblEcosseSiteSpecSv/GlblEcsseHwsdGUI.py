@@ -12,10 +12,13 @@ __version__ = '0.0.1'
 __author__ = 's03mm5'
 
 import sys
+from os.path import join, isdir
+from os import listdir
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QLabel, QWidget, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout, QLineEdit, \
-                                            QComboBox, QRadioButton, QButtonGroup, QPushButton, QCheckBox, QFileDialog
+from PyQt5.QtWidgets import (QLabel, QWidget, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout, QLineEdit,
+                                            QComboBox, QRadioButton, QButtonGroup, QPushButton, QCheckBox, QFileDialog)
 
 from initialise_funcs import read_config_file, initiation, change_config_file, build_and_display_studies
 from commonCmpntsGUI import exit_clicked, commonSection, grid_coarseness, calculate_grid_cell, save_clicked
@@ -376,6 +379,7 @@ class Form(QWidget):
         helpText = 'traverse previously written met data and write AVEMET.DAT file'
         w_avemet.setToolTip(helpText)
         w_avemet.setFixedWidth(WDGT_SIZE_100)
+        w_avemet.setEnabled(False)
         grid.addWidget(w_avemet, irow, icol)
         w_avemet.clicked.connect(self.writeAvemetClicked)
 
@@ -396,6 +400,14 @@ class Form(QWidget):
         grid.addWidget(w_mappings, irow, icol)
         w_mappings.clicked.connect(self.checkMappingsClicked)
 
+        icol += 1
+        w_chck_wthr = QPushButton("Check Weather")
+        helpText = 'Check weather'
+        w_chck_wthr.setToolTip(helpText)
+        w_chck_wthr.setFixedWidth(WDGT_SIZE_100)
+        grid.addWidget(w_chck_wthr, irow, icol)
+        w_chck_wthr.clicked.connect(self.checkWthrClicked)
+
         # Layout this window
         # ==================
         rh_vbox.addLayout(grid)     # add grid to RH vertical box
@@ -415,6 +427,24 @@ class Form(QWidget):
         self.w_ur_lon.textChanged[str].connect(self.bboxTextChanged)
 
         self.changeRegion()  # populates lat/long boxes
+
+    def checkWthrClicked(self):
+        """
+
+        """
+        wthr_scenarios = self.wthr_scenarios
+        sims_dir = self.setup['sims_dir']
+
+        fs_dirs = listdir(sims_dir)
+        for fn in fs_dirs:
+            this_dir = join(sims_dir, fn)
+            if isdir(this_dir):
+                res = fn.split('_')
+                if len(res) == 2:
+                    if res[1] in wthr_scenarios:
+                        print('\tentities in ' + fn + ' ' + str(len(listdir(this_dir))))
+
+        return
 
     def writeAvemetClicked(self):
         """
