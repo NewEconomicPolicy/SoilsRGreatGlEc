@@ -40,7 +40,7 @@ SPACER_LEN = 12
 
 def generate_all_weather(form, all_regions_flag = True):
     """
-
+    C
     """
     max_cells = int(form.w_max_cells.text())
     crop_name = form.w_combo00b.currentText()
@@ -63,14 +63,13 @@ def generate_all_weather(form, all_regions_flag = True):
         return
 
     mask_defn, yield_defn, dates_defn, fert_defns = proj_data_defns
-    del(proj_data_defns)
+    del proj_data_defns
 
     # define study
     # ============
     set_region_study(form)
 
     sims_dir = form.setup['sims_dir']
-    start_from_1801 = True
     sim_strt_year = 1801
 
     fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
@@ -97,10 +96,10 @@ def generate_all_weather(form, all_regions_flag = True):
             print(mess)
 
             lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions.iloc[irow][1:]
-            bbox =  list([lon_ll, lat_ll, lon_ur, lat_ur])
+            bbox = list([lon_ll, lat_ll, lon_ur, lat_ur])
 
             form.setup['region_wthr_dir'] = wthr_dir_abbrv
-            climgen  = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
+            climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
 
             # identify geo-extent for this run
             # ================================
@@ -153,7 +152,7 @@ def generate_all_weather(form, all_regions_flag = True):
                     # generate weather dataset indices which enclose the AOI for this band
                     # ====================================================================
                     hist_lat_indx, hist_lon_indx = get_wthr_nc_coords(climgen.hist_wthr_set_defn, lat, lon)
-                    fut_lat_indx, fut_lon_indx   = get_wthr_nc_coords(climgen.fut_wthr_set_defn, lat, lon)
+                    fut_lat_indx, fut_lon_indx = get_wthr_nc_coords(climgen.fut_wthr_set_defn, lat, lon)
                     if hist_lat_indx < 0 or fut_lat_indx < 0:
                         noutbnds += 1
                         continue
@@ -161,8 +160,8 @@ def generate_all_weather(form, all_regions_flag = True):
                     # Get future and historic weather data
                     # ====================================
                     pettmp_hist = fetch_WrldClim_data(form.lgr, lat, lon, climgen, hist_wthr_dsets,
-                                                                    hist_lat_indx, hist_lon_indx, hist_flag = True)
-                    pettmp_fut =  fetch_WrldClim_data(form.lgr, lat, lon, climgen, fut_wthr_dsets,
+                                                                    hist_lat_indx, hist_lon_indx, hist_flag=True)
+                    pettmp_fut = fetch_WrldClim_data(form.lgr, lat, lon, climgen, fut_wthr_dsets,
                                                                                         fut_lat_indx, fut_lon_indx)
                     if pettmp_fut is None or pettmp_hist is None:
                         pettmp_sim = None
@@ -172,7 +171,7 @@ def generate_all_weather(form, all_regions_flag = True):
 
                     # create weather
                     # ==============
-                    site_obj = MakeSiteFiles(form, climgen, comments=True)
+                    site_obj = MakeSiteFiles(form, climgen)
                     make_wthr_files(site_obj, lat, lon, climgen, pettmp_hist, pettmp_sim)
                     ncmpltd += 1
                     ntotal_wrttn += 1
@@ -281,7 +280,7 @@ def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag=False):
     if isdir(clim_dir):
         fns = listdir(clim_dir)
         nfiles = len(fns)
-        if nfiles ==0 or nfiles >= 302:
+        if nfiles == 0 or nfiles >= 302:
             if nfiles == 0:
                 integrity_flag = True
                 hist_lta_recs, met_fnames = None, None

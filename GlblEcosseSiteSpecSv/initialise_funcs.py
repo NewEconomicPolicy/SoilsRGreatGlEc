@@ -93,8 +93,14 @@ def initiation(form):
     if len(config_files) > 0:
         form.setup['config_file'] = config_files[0]
     else:
+        '''
         form.setup['config_file'] = normpath(normpath(form.setup['config_dir']
-                                                                  + '/' + APPLIC_STR + '_dummy.json'))
+                                                                         + '/' + APPLIC_STR + '_dummy.json'))
+        '''
+        print(ERROR_STR + 'there must be at least one config file in ' + form.setup['config_dir'])
+        sleep(sleepTime)
+        exit(0)
+
     set_up_logging(form, APPLIC_STR)
 
     # Nitpars, fnames.dat and model_switches must be present - crop_pars for limited data mode only
@@ -109,6 +115,7 @@ def initiation(form):
             sleep(sleepTime)
             exit(0)
 
+    form.config_files = config_files
     form.crop_defns = _read_crop_defns(form.dflt_ecosse_fnames['crop_sun'])
 
     # Look for and create definition for countries file

@@ -39,7 +39,7 @@ SKIP_GRAFT = False   # avoid IO intensive overhead to test Mean N Application sp
 
 def all_generate_banded_sims(form, all_regions_flag = True):
     """
-
+    C
     """
     nstudies = len(form.studies)
     nw_combo = form.w_combo00s.count()
@@ -149,7 +149,7 @@ def generate_banded_sims(form, region, crop_name):
     lat_ll = float(form.w_ll_lat.text())
     lon_ur = float(form.w_ur_lon.text())
     lat_ur = float(form.w_ur_lat.text())
-    form.setup['bbox'] =  list([lon_ll, lat_ll, lon_ur, lat_ur])
+    form.setup['bbox'] = list([lon_ll, lat_ll, lon_ur, lat_ur])
 
     # =========================================================
     write_study_definition_file(form)
@@ -157,7 +157,7 @@ def generate_banded_sims(form, region, crop_name):
         sim_strt_year = 1801
     else:
         sim_strt_year = int(form.w_combo11s.currentText())
-    sim_end_year   = int(form.w_combo11e.currentText())
+    sim_end_year = int(form.w_combo11e.currentText())
 
     # verify mask, sowing, yields, fertiliser NC files
     # ================================================
@@ -167,7 +167,7 @@ def generate_banded_sims(form, region, crop_name):
         return
 
     mask_defn, yield_defn, dates_defn, fert_defns = proj_data_defns
-    del(proj_data_defns)
+    del proj_data_defns
     yld_varname = yield_defn.var_name
 
     # weather choice - CRU is default, check requested AOI coordinates against weather dataset extent
@@ -175,7 +175,7 @@ def generate_banded_sims(form, region, crop_name):
     if not check_clim_nc_limits(form, form.setup['bbox'], form.wthr_rsrces_generic):
         return
 
-    climgen  = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year)
+    climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year)
 
     # identify geo-extent for this run
     # ================================
@@ -189,7 +189,6 @@ def generate_banded_sims(form, region, crop_name):
     #  open required NC sets
     # ======================
     open_proj_NC_sets(mask_defn, yield_defn, dates_defn, fert_defns)
-    hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
 
     # main AOI traversal loops - outer: North to South, inner: East to West
     # ========================
@@ -228,33 +227,18 @@ def generate_banded_sims(form, region, crop_name):
 
             # retrieve soil detail for this cell
             # ==================================
-            nrows_read      = hwsd.read_bbox_mu_globals(form.setup['bbox'])   # create grid of MU_GLOBAL values
+            nrows_read = hwsd.read_bbox_mu_globals(form.setup['bbox'])   # create grid of MU_GLOBAL values
             mu_global_pairs = hwsd.get_mu_globals_dict()    # retrieve dictionary of mu_globals and number of occurrences
             if mu_global_pairs is None:
                 nskipped += 1
                 continue
-            cell_hwsd_df    = Cell_hwsd_data_frame(form.lgr, hwsd)  # create data frame for cell
-            soil_recs       = hwsd.get_soil_recs(mu_global_pairs)            # create soil records - updates bad_muglobals
+            cell_hwsd_df = Cell_hwsd_data_frame(form.lgr, hwsd)  # create data frame for cell
+            soil_recs = hwsd.get_soil_recs(mu_global_pairs)            # create soil records - updates bad_muglobals
             if soil_recs is None:
                 nskipped += 1
                 continue
 
             soil_defn.populate(lat, lon, area, cell_hwsd_df, mu_global_pairs, soil_recs)
-
-            # generate weather dataset indices which enclose the AOI for this band
-            # ====================================================================
-            hist_lat_indx, hist_lon_indx = get_wthr_nc_coords(climgen.hist_wthr_set_defn, lat, lon)
-            fut_lat_indx, fut_lon_indx   = get_wthr_nc_coords(climgen.fut_wthr_set_defn, lat, lon)
-            if hist_lat_indx < 0 or fut_lat_indx < 0:
-                nskipped += 1
-                continue
-
-            # generate sets of Ecosse files
-            # =============================
-            integrity_flag, hist_lta_recs, met_fnames = fetch_hist_lta_from_lat_lon(sims_dir, climgen, lat, lon)
-            if not integrity_flag:
-                nskipped += 1
-                continue
 
             # yield has same resolution as mask
             # =================================
@@ -285,7 +269,9 @@ def generate_banded_sims(form, region, crop_name):
                     warning_count += 1
                     continue
 
-                site_obj = MakeSiteFiles(form, climgen, comments=True)
+                site_obj = MakeSiteFiles(form, climgen)
+
+                hist_lta_recs, met_fnames = None, None
                 make_ecosse_files(site_obj, climgen, soil_defn, fert_recs, plant_day, harvest_day,
                                                                          yield_val, hist_lta_recs, met_fnames)
                 ncompleted += 1
@@ -297,7 +283,7 @@ def generate_banded_sims(form, region, crop_name):
         # finished this band - report progress
         # ====================================
         mess = 'Processed band {} of {} bands for lat: {}\tN growing locations: {}'.format(nband,
-                                                                        nbands, lat, ngrow_this_band)
+                                                                                        nbands, lat, ngrow_this_band)
         form.lgr.info(mess)
         if ncompleted >= max_cells:
             print('\nFinishing run after {} cells completed'.format(ncompleted))
@@ -306,9 +292,6 @@ def generate_banded_sims(form, region, crop_name):
     # close NC files
     # ==============
     close_proj_NC_sets(mask_defn, yield_defn, dates_defn, fert_defns)
-    for metric in list(['precip', 'tas']):
-        hist_wthr_dsets[metric].close()
-        fut_wthr_dsets[metric].close()
 
     if glbl_n_flag:
         form.glbl_n_inpts.cntries_defn.nc_dset.close()
