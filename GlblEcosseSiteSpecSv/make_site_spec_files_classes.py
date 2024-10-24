@@ -404,14 +404,14 @@ class MakeSiteFiles(object):
 
     def add_soil_lyr(self, lut_name, c_content, bulk_density, ph, clay_pc, silt_pc, sand_pc):
         """
-
+        C
         """
         self.soil_lyrs[lut_name.lower()].append(
                                     SoilLyr(c_content, bulk_density, ph, clay_pc, silt_pc, sand_pc, self.nan))
 
     def del_soil_lyrs(self):
         """
-
+        C
         """
         for lut in self._luts:
             self.soil_lyrs[lut] = []
@@ -429,7 +429,7 @@ class MakeSiteFiles(object):
 
     def write_sim_files(self, directory, soil, hist_weather_recs, met_rel_path):
         """
-
+        C
         """
         # self._write_fnames_file(directory)
         self._write_management_file(directory, met_rel_path)

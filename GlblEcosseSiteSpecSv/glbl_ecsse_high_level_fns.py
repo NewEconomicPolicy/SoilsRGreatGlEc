@@ -261,20 +261,23 @@ def generate_banded_sims(form, region, crop_name):
                 warning_count += 1
                 continue
 
-            if not SKIP_GRAFT:
-                # simplify if requested
-                # =====================
-                ret_code = soil_defn.simplify_soil_defn(use_dom_soil_flag, use_high_cover_flag, hwsd.bad_muglobals)
-                if ret_code is None:
-                    warning_count += 1
-                    continue
+            # simplify if requested
+            # =====================
+            ret_code = soil_defn.simplify_soil_defn(use_dom_soil_flag, use_high_cover_flag, hwsd.bad_muglobals)
+            if ret_code is None:
+                warning_count += 1
+                continue
 
-                site_obj = MakeSiteFiles(form, climgen)
+            site_obj = MakeSiteFiles(form, climgen)
 
-                hist_lta_recs, met_fnames = None, None
+            integrity_flag, hist_lta_recs, met_fnames = fetch_hist_lta_from_lat_lon(sims_dir, climgen, lat, lon)
+
+            if integrity_flag:
                 make_ecosse_files(site_obj, climgen, soil_defn, fert_recs, plant_day, harvest_day,
-                                                                         yield_val, hist_lta_recs, met_fnames)
+                                                                     yield_val, hist_lta_recs, met_fnames)
                 ncompleted += 1
+            else:
+                nskipped += 1
 
             last_time = update_progress(last_time, ncompleted, nskipped, ntotal_grow, ngrowing, nno_grow, hwsd)
             if ncompleted >= max_cells:

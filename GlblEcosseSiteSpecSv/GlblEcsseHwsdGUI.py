@@ -582,7 +582,7 @@ class Form(QWidget):
 
     def runEcosse(self):
         """
-
+        C
         """
         calculate_grid_cell(self)   # assigns value to req_resol_deg
         set_region_study(self)      # sets simulation root directory

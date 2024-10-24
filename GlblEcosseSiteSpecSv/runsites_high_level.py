@@ -20,7 +20,7 @@ from json import load as json_load, dump as json_dump
 
 def run_ecosse_wrapper(form):
     """
-
+    C
     """
     func_name = __prog__ + ' runEcosse'
 
@@ -34,7 +34,7 @@ def run_ecosse_wrapper(form):
 
 def write_runsites_config_file(form):
     """
-
+    C
     """
     func_name = __prog__ + ' write_runsites_config_file'
 
@@ -59,4 +59,5 @@ def write_runsites_config_file(form):
     with open(runsites_config_file, 'w') as fconfig:
         json_dump(config, fconfig, indent=2, sort_keys=True)
         print('Edited ' + runsites_config_file + '\n\twith simulation location: ' + sims_dir)
-        return True
+
+    return True

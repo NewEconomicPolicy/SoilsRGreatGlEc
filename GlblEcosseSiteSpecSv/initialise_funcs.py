@@ -336,7 +336,7 @@ def _read_setup_file(applic_str):
     settings[grp]['ecosse_fpath'] = ecosse_fpath
     settings[grp]['max_countries'] = MAX_COUNTRIES
 
-    lta_nc_fname =None
+    lta_nc_fname = None
     print_resource_locations(setup_file, config_dir, hwsd_dir, weather_dir, lta_nc_fname, sims_dir, log_dir)
 
     return settings
