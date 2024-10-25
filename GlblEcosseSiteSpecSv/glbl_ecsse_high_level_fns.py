@@ -33,53 +33,22 @@ from initialise_funcs import change_config_file
 from wthr_generation_fns import fetch_hist_lta_from_lat_lon
 
 WARNING_STR = '*** Warning *** '
-REGION_ABBREVS = ['Australasia','Africa','Asia','Europe','NAmerica','SAmerica']   # map to regions
-# REGION_ABBREVS = ['Australasia','Europe','NAmerica','SAmerica']   # map to regions
+
 SKIP_GRAFT = False   # avoid IO intensive overhead to test Mean N Application spreadsheet methodology
 
-def all_generate_banded_sims(form, all_regions_flag = True):
+def all_generate_banded_sims(form):
     """
-    C
+    get all studies, then change config files
     """
-    nstudies = len(form.studies)
-    nw_combo = form.w_combo00s.count()
-    if nstudies != nw_combo:
-        mess = WARNING_STR + 'Option to generate simulations for all regions not available'
-        print(mess + ' - number of studies {} should match number of entries in studies w_combobox {}'
-                                                                                            .format(nstudies, nw_combo))
-        return None
+    study_set = [form.w_combo00s.itemText(i) for i in range(form.w_combo00s.count())]
 
-    '''
-    get current study, create list of all studies based on current study, then change config files if these studies exist
-    '''
-    study = form.w_study.text()
-    if study.find('_') == -1:
-        print(WARNING_STR + 'study name must have an underscore to run all regions')
-        return None
-
-    study_set = []
-    cmmn_nm = study.split('_')[1]   # common name
-    for region in REGION_ABBREVS:
-        study_set.append(region + '_' + cmmn_nm)
-
-    if all_regions_flag:
-
-        for study in study_set:
-            if(change_config_file(form, study)):
-                form.update()
-                region = form.w_combo00a.currentText()
-                crop_name = form.w_combo00b.currentText()
-                print('\nGenerating cells for crop: {}\tregion: {}'.format(crop_name, region))
-                generate_banded_sims(form, region, crop_name)
-                write_study_definition_file(form)
-    else:
+    for study in study_set:
+        change_config_file(form, study)
+        form.update()
         region = form.w_combo00a.currentText()
-        for crop_indx, crop_name in enumerate(form.setup['crops']):
-            form.w_combo00b.setCurrentIndex(crop_indx)
-            form.update()
-            print('\nGenerating cells for crop: {}\tregion: {}'.format(crop_name, region))
-            generate_banded_sims(form, region, crop_name)
-            write_study_definition_file(form)
+        crop_name = form.w_combo00b.currentText()
+        print('\nGenerating cells for crop: {}\tregion: {}'.format(crop_name, region))
+        generate_banded_sims(form, region, crop_name)
 
     return
 

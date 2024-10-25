@@ -290,12 +290,6 @@ def commonSection(form, grid, irow):
 
     return irow
 
-def save_clicked(form):
-
-        # write last GUI selections
-        write_config_file(form)
-        write_study_definition_file(form)
-
 def grid_coarseness(form, grid, irow):
     '''
    function to lay out grid resolution dropdown and reporting

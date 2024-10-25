@@ -136,6 +136,8 @@ def change_config_file(form, new_study = None):
     """
     if new_study is None:
         new_study = form.w_combo00s.currentText()
+        if new_study == '':     # this can happen when saving to the config file
+            return
 
     new_config = form.setup['applic_str'] + '_' + new_study
     config_file = normpath(form.setup['config_dir'] + '/' + new_config + '.json')
@@ -145,10 +147,10 @@ def change_config_file(form, new_study = None):
         read_config_file(form)
         form.setup['study'] = new_study
         form.w_study.setText(new_study)
-        return True
+        return
     else:
         print(WARNING_STR + 'Could not locate ' + config_file)
-        return False
+        return
 
 def build_and_display_studies(form):
     """

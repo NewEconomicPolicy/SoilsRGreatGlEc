@@ -19,16 +19,19 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QLabel, QWidget, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout, QLineEdit,
                                             QComboBox, QRadioButton, QButtonGroup, QPushButton, QCheckBox, QFileDialog)
 
-from initialise_funcs import read_config_file, initiation, change_config_file, build_and_display_studies
-from commonCmpntsGUI import exit_clicked, commonSection, grid_coarseness, calculate_grid_cell, save_clicked
-from glbl_ecsse_high_level_fns import generate_banded_sims, all_generate_banded_sims
-from glbl_ecsse_low_level_fns import check_cultiv_json_fname, check_rotation_json_fname, set_region_study
+from initialise_funcs import (read_config_file, initiation, change_config_file, write_config_file,
+                                                                                            build_and_display_studies)
+from commonCmpntsGUI import exit_clicked, commonSection, grid_coarseness, calculate_grid_cell
 from glbl_ecss_cmmn_funcs import write_study_definition_file
 from runsites_high_level import run_ecosse_wrapper
 from shape_funcs import format_bbox, calculate_area
 
+from glbl_ecsse_high_level_fns import generate_banded_sims, all_generate_banded_sims
+from glbl_ecsse_low_level_fns import (check_cultiv_json_fname, check_rotation_json_fname, set_region_study)
+
 from glbl_ecsse_high_level_test_fns import generate_banded_sims_test, all_generate_banded_sims_test
 from glbl_ecsse_low_level_test_fns import check_cntry_prvnc_mappings
+
 from wthr_generation_fns import generate_all_weather, write_avemet_files
 
 WARNING_STR = '*** Warning *** '
@@ -205,7 +208,7 @@ class Form(QWidget):
         self.w_max_cells = w_max_cells
         grid.addWidget(w_max_cells, irow, 1)
 
-        w_all_regions = QCheckBox('All regions')
+        w_all_regions = QCheckBox('All studies')
         helpText = 'Generate across all regions'
         w_all_regions.setToolTip(helpText)
         grid.addWidget(w_all_regions, irow, 2)
@@ -495,11 +498,8 @@ class Form(QWidget):
 
     def saveClicked(self):
         """
-
+        validate user input by checking for spaces and blankness
         """
-
-        # check for spaces
-        # ================
         study = self.w_study.text()
         if study == '':
             print('study cannot be blank')
@@ -507,7 +507,9 @@ class Form(QWidget):
             if study.find(' ') >= 0:
                 print('*** study name must not have spaces ***')
             else:
-                save_clicked(self)
+                # write last GUI selections
+                write_config_file(self)
+                write_study_definition_file(self)
                 build_and_display_studies(self)
 
     def resolutionChanged(self):
