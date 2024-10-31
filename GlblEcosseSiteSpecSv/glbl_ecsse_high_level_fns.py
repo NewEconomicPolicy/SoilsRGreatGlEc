@@ -14,6 +14,7 @@ __author__ = 's03mm5'
 
 from time import time
 from locale import LC_ALL, setlocale, format_string
+from PyQt5.QtWidgets import QApplication
 
 from hwsd_bil import HWSD_bil
 from hwsd_soil_class import HWSD_soil_defn
@@ -40,16 +41,19 @@ def all_generate_banded_sims(form):
     """
     get all studies, then change config files
     """
-    study_set = [form.w_combo00s.itemText(i) for i in range(form.w_combo00s.count())]
+    study_set = [form.w_combo00s.itemText(istdy) for istdy in range(form.w_combo00s.count())]
 
     for study in study_set:
         change_config_file(form, study)
-        form.update()
+        QApplication.processEvents()
+        form.update() # Updates the widget but does not cause an immediate repaint
+
         region = form.w_combo00a.currentText()
         crop_name = form.w_combo00b.currentText()
         print('\nGenerating cells for crop: {}\tregion: {}'.format(crop_name, region))
         generate_banded_sims(form, region, crop_name)
 
+    print('Finished processing {} studies'.format(len(study_set)))
     return
 
 def generate_banded_sims(form, region, crop_name):
