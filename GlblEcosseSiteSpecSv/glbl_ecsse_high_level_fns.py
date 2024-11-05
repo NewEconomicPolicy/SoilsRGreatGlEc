@@ -246,7 +246,7 @@ def generate_banded_sims(form, region, crop_name):
             integrity_flag, hist_lta_recs, met_fnames = fetch_hist_lta_from_lat_lon(sims_dir, climgen, lat, lon)
 
             if integrity_flag:
-                if hist_lta_recs is None or met_fnames is None:     # weather site is an empty folder
+                if hist_lta_recs is None or met_fnames is None:     #  weather site is an empty folder
                     nskipped += 1
                 else:
                     make_ecosse_files(site_obj, climgen, soil_defn, fert_recs, plant_day, harvest_day,
