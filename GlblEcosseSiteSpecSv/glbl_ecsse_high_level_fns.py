@@ -115,6 +115,7 @@ def generate_banded_sims(form, region, crop_name):
     hwsd = HWSD_bil(form.lgr, form.setup['hwsd_dir'])
     soil_defn = HWSD_soil_defn(form.lgr)
     sims_dir = form.setup['sims_dir']
+    wthr_prj_dir = form.setup['wthr_prj_dir']
 
     # fetch bounding box
     # ==================
@@ -243,7 +244,7 @@ def generate_banded_sims(form, region, crop_name):
 
             site_obj = MakeSiteFiles(form, climgen)
 
-            integrity_flag, hist_lta_recs, met_fnames = fetch_hist_lta_from_lat_lon(sims_dir, climgen, lat, lon)
+            integrity_flag, hist_lta_recs, met_fnames = fetch_hist_lta_from_lat_lon(wthr_prj_dir, climgen, lat, lon)
 
             if integrity_flag:
                 if hist_lta_recs is None or met_fnames is None:     #  weather site is an empty folder

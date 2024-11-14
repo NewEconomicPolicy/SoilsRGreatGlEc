@@ -31,7 +31,7 @@ def make_ecosse_files(site, climgen, soil_defn, fert_recs, plant_day, harvest_da
     # write a single set of met files for all simulations for this grid cell
     # ======================================================================
     gran_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
-    met_rel_path = '..\\..\\' + climgen.region_wthr_dir + '\\' + gran_coord + '\\'
+    met_rel_path = join('..', '..', '..', 'Wthr', climgen.region_wthr_dir, gran_coord,'')
 
     #------------------------------------------------------------------
     # Create a set of simulation input files for each dominant

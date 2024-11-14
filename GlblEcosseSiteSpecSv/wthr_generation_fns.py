@@ -234,7 +234,7 @@ def make_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_sim):
     """
     gran_lat, gran_lon = _gran_coords_from_lat_lon(lat, lon)
     gran_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
-    clim_dir = normpath(join(site.sims_dir, climgen.region_wthr_dir, gran_coord))
+    clim_dir = normpath(join(site.wthr_prj_dir, climgen.region_wthr_dir, gran_coord))
     if not isdir(clim_dir):
         makedirs(clim_dir)  # always create even if no weather data
 

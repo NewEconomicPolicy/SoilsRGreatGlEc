@@ -42,7 +42,7 @@ RUN_SETTINGS_SETUP_LIST =[ 'completed_max', 'check_space_every', 'kml_flag', 'la
 
 SETTINGS_SETUP_LIST = ['config_dir', 'fname_png', 'log_dir', 'n_inputs_xls', 'proj_path', 'regions_fname',
                        'sims_dir', 'weather_dir', 'shp_dir', 'shp_dir_gadm', 'python_exe', 'runsites_py',
-                       'weather_resource']
+                       'weather_resource', 'wthr_prj_dir']
 MIN_GUI_LIST = ['aveWthrFlag', 'autoRunEcFlag', 'bbox', 'cultivJsonFname', 'daily_mode', 'manureFlag', 'regionIndx',
                     'yearFrom', 'rotaJsonFname', 'rotationFlag', 'wthrRsrce', 'maxCells', 'allRegionsFlag',
                                                                                 'perenCrops', 'autoRunEcFlag']

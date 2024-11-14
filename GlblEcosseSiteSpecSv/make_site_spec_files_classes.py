@@ -80,7 +80,8 @@ class MakeSiteFiles(object):
         self.comments = comments      # True = write comments, False = leave them out
         self.spacer_len = spacer_len  # Number of spaces between data and comment
         self.nan = nan
-        self.sims_dir      = form.setup['sims_dir']
+        self.sims_dir = form.setup['sims_dir']
+        self.wthr_prj_dir = form.setup['wthr_prj_dir']
         self.equil_mode    = equil_mode         # Mode of equilibrium run
         self.manure_flag   = manure_flag
         self.dflt_ecosse_fnames = form.dflt_ecosse_fnames
@@ -447,7 +448,7 @@ class MakeSiteFiles(object):
         """
 
         """
-        avemet_from = join(self.sims_dir, met_rel_path[6:], 'AVEMET.DAT')
+        avemet_from = join(self.wthr_prj_dir, met_rel_path[6:], 'AVEMET.DAT')
         avemet_to = join(directory, 'AVEMET.DAT')
         copyfile(avemet_from, avemet_to)
 

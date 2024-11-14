@@ -11,7 +11,7 @@
 __prog__ = 'getClimGenNC.py'
 __author__ = 's03mm5'
 
-from os import remove, mkdir
+from os import remove, makedirs
 from os.path import join, normpath, isdir, isfile, split as split_dir
 from calendar import month_abbr
 
@@ -82,9 +82,9 @@ class ClimGenNC(object,):
         # create weather resource directory if necessary
         # ==============================================
         region_wthr_dir = form.setup['region_wthr_dir'] + wthr_rsrce + '_' + fut_clim_scen
-        clim_dir = normpath(join(form.setup['sims_dir'], region_wthr_dir))
+        clim_dir = normpath(join(form.setup['wthr_prj_dir'], region_wthr_dir))
         if not isdir(clim_dir):
-            mkdir(clim_dir)
+            makedirs(clim_dir)
             print('\tcreated: ' + clim_dir)
 
         self.region_wthr_dir = region_wthr_dir
