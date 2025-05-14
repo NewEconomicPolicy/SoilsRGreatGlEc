@@ -13,7 +13,7 @@ __version__ = '0.0.0'
 # Version history
 # ---------------
 # 
-from os.path import join, normpath, exists, isfile, isdir, split, splitext
+from os.path import join, normpath, exists, isfile, isdir, split, splitext, splitdrive
 from os import makedirs, getcwd, name as os_name
 from json import load as json_load, dump as json_dump
 from json.decoder import JSONDecodeError
@@ -297,6 +297,14 @@ def _read_setup_file(applic_str):
     # make sure directories exist for configuration and log files
     # ===========================================================
     check_hwsd_integrity(hwsd_dir)
+
+    print('Checking drives, this may take a while...')
+    for path_name in list([log_dir, config_dir, sims_dir, regions_fname, weather_dir]):
+        drv_nm, tail_nm = splitdrive(path_name)
+        if not isdir(drv_nm):
+            print(ERROR_STR + 'Drive {} for {} does not exist'.format(drv_nm, path_name))
+            sleep(sleepTime)
+            exit(0)
 
     if not isdir(log_dir):
         makedirs(log_dir)
