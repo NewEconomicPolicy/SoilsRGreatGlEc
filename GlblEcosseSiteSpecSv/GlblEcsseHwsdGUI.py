@@ -626,6 +626,7 @@ class Form(QWidget):
         """
         exit cleanly
         """
+        write_study_definition_file(self)
         exit_clicked(self)
 
     def changeCrop(self):
