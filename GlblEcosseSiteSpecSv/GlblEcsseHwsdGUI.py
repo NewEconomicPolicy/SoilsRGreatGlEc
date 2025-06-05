@@ -109,7 +109,7 @@ class Form(QWidget):
         grid.addWidget(lbl00a, irow, 0)
 
         w_combo00a= QComboBox()
-        for region in self.regions['Region']:
+        for region in self.regions:
             w_combo00a.addItem(region)
         w_combo00a.setFixedWidth(WDGT_SIZE_180)
         grid.addWidget(w_combo00a, irow, 1)
@@ -525,7 +525,7 @@ class Form(QWidget):
         # bounding box set up
         irow = self.w_combo00a.currentIndex()
 
-        ll_lon, ur_lon, ll_lat, ur_lat, wthr_dir = self.regions.iloc[irow][1:]
+        ll_lon, ur_lon, ll_lat, ur_lat, wthr_dir = self.regions_df.iloc[irow][1:]
         area = calculate_area(list([ll_lon, ll_lat, ur_lon, ur_lat]))
         self.w_ll_lon.setText(str(ll_lon))
         self.w_ll_lat.setText(str(ll_lat))

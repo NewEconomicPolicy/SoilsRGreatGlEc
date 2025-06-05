@@ -89,7 +89,7 @@ def generate_banded_sims(form, region, crop_name):
     else:
         use_high_cover_flag = False
 
-    if form.w_ave_wthr.isChecked():
+    if form.w_strt_1801.isChecked():
         start_from_1801 = True
     else:
         start_from_1801 = False

@@ -43,7 +43,7 @@ RUN_SETTINGS_SETUP_LIST =[ 'completed_max', 'check_space_every', 'kml_flag', 'la
 SETTINGS_SETUP_LIST = ['config_dir', 'fname_png', 'log_dir', 'n_inputs_xls', 'proj_path', 'regions_fname',
                        'sims_dir', 'weather_dir', 'shp_dir', 'shp_dir_gadm', 'python_exe', 'runsites_py',
                        'weather_resource', 'wthr_prj_dir']
-MIN_GUI_LIST = ['aveWthrFlag', 'autoRunEcFlag', 'bbox', 'cultivJsonFname', 'daily_mode', 'manureFlag', 'regionIndx',
+MIN_GUI_LIST = ['strt1801Flag', 'autoRunEcFlag', 'bbox', 'cultivJsonFname', 'daily_mode', 'manureFlag', 'regionIndx',
                     'yearFrom', 'rotaJsonFname', 'rotationFlag', 'wthrRsrce', 'maxCells', 'allRegionsFlag',
                                                                                 'perenCrops', 'autoRunEcFlag']
 CMN_GUI_LIST = ['cruStrtYr', 'cruEndYr', 'climScnr', 'futStrtYr', 'futEndYr', 'cropIndx', 'gridResol', 'eqilMode']
@@ -70,6 +70,7 @@ def initiation(form):
     form.setup['applic_str'] = APPLIC_STR
     form.setup['crops'] = dict({'Maize':15, 'Sugarcane':10, 'Wheat':5})
     form.regions = settings['regions']
+    form.regions_df = settings['regions_df']
     form.fobjs = None
     form.zeros_file = None
 
@@ -323,7 +324,7 @@ def _read_setup_file(applic_str):
     # file comprising world regions
     # ============================
     if isfile(regions_fname):
-        settings['regions'] = _read_regions_file(regions_fname)
+        settings['regions'],  settings['regions_df'] = _read_regions_file(regions_fname)
     else:
         print(ERROR_STR + 'reading {}\tregions definition file {} must exist'.format(setup_file, regions_fname))
         sleep(sleepTime)
@@ -425,13 +426,13 @@ def _write_default_config_file(config_file):
     bbox_default = [0,0,0,0]
     _default_config = {
         'minGUI': {
-            'aveWthrFlag': False,
+            'strt1801Flag': False,
             'bbox': bbox_default,
             'cultivJsonFname': '',
             'daily_mode': True,
             "manureFlag": False,
             "regionIndx": 0,
-            "wthrRsrce": 0
+            "wthrRsrce": ''
         },
         'cmnGUI': {
             'climScnr': 0,
@@ -463,9 +464,8 @@ def read_config_file(form):
                 config = json_load(fconfig)
                 print('Read config file ' + config_file)
         except (OSError, IOError, JSONDecodeError) as err:
-            print(ERROR_STR + str(err) + ' in config file:\n\t' + config_file)
-            sleep(sleepTime)
-            exit(0)
+            print(ERROR_STR + str(err) + ' in config file:\t' + config_file)
+            return False
     else:
         config = _write_default_config_file(config_file)
         print('Wrote configuration file ' + config_file)
@@ -480,7 +480,7 @@ def read_config_file(form):
                 sleep(sleepTime)
                 exit(0)
 
-    ave_weather        = config[grp]['aveWthrFlag']
+    ave_weather        = config[grp]['strt1801Flag']
     auto_run_ec        = config[grp]['autoRunEcFlag']
     form.setup['bbox'] = config[grp]['bbox']
     daily_mode         = config[grp]['daily_mode']
@@ -511,13 +511,14 @@ def read_config_file(form):
     form.w_combo00a.setCurrentIndex(config[grp]['regionIndx'])
 
     # make sure index is within the permissable range of entries
-    wthr_rsrce_indx = config[grp]['wthrRsrce']
-    if not isinstance(wthr_rsrce_indx, int):
-        wthr_rsrce_indx = 0  # sets to CRU, the default
+    wthr_rsrce = config[grp]['wthrRsrce']
+    wthr_rsrce_indx = form.w_combo10w.findText(str(wthr_rsrce))
+    if wthr_rsrce_indx == -1:
+        wthr_rsrce = 'CRU'  # default
 
     nitems = form.w_combo10w.count()
     if wthr_rsrce_indx >= 0 and wthr_rsrce_indx < nitems:
-        form.w_combo10w.setCurrentIndex(wthr_rsrce_indx)
+        form.w_combo10w.setCurrentText(wthr_rsrce)
 
     wthr_rsrce = form.w_combo10w.currentText()
     change_weather_resource(form, wthr_rsrce)
@@ -545,7 +546,7 @@ def read_config_file(form):
 
     form.w_combo09s.setCurrentIndex(hist_strt_year)
     form.w_combo09e.setCurrentIndex(hist_end_year)
-    form.w_combo10.setCurrentIndex(scenario)
+    form.w_combo10.setCurrentText(scenario)
     form.w_combo11s.setCurrentIndex(sim_strt_year)
     form.w_combo11e.setCurrentIndex(sim_end_year)
 
@@ -589,9 +590,9 @@ def read_config_file(form):
         form.w_auto_run_ec.setCheckState(0)
 
     if ave_weather:
-        form.w_ave_wthr.setCheckState(2)
+        form.w_strt_1801.setCheckState(2)
     else:
-        form.w_ave_wthr.setCheckState(0)
+        form.w_strt_1801.setCheckState(0)
 
     if glbl_n_flag:
         form.w_glbl_n_inpts.setCheckState(2)
@@ -686,7 +687,7 @@ def write_config_file(form):
             'cropIndx': form.w_combo00b.currentIndex(),
             'cruStrtYr': form.w_combo09s.currentIndex(),
             'cruEndYr': form.w_combo09e.currentIndex(),
-            'climScnr': form.w_combo10.currentIndex(),
+            'climScnr': form.w_combo10.currentText(),
             'futStrtYr': form.w_combo11s.currentIndex(),
             'futEndYr': form.w_combo11e.currentIndex(),
             'eqilMode': form.w_equimode.text(),
@@ -694,7 +695,7 @@ def write_config_file(form):
         },
         'minGUI': {
             'allRegionsFlag': form.w_all_regions.isChecked(),
-            'aveWthrFlag': form.w_ave_wthr.isChecked(),
+            'strt1801Flag': form.w_strt_1801.isChecked(),
             'autoRunEcFlag': form.w_auto_run_ec.isChecked(),
             'bbox': form.setup['bbox'],
             'cultivJsonFname': form.w_lbl13.text(),
@@ -707,7 +708,7 @@ def write_config_file(form):
             'yearFrom' : form.w_yr_from.text(),
             'rotationFlag': form.w_crop_rota.isChecked(),
             'regionIndx': form.w_combo00a.currentIndex(),
-            'wthrRsrce': form.w_combo10w.currentIndex()
+            'wthrRsrce': form.w_combo10w.currentText()
         }
     }
     if isfile(config_file):
@@ -730,11 +731,11 @@ def _read_regions_file(regions_fname):
     """
     print('Will use regions definition file: ' + regions_fname)
     try:
-        data = read_excel(regions_fname, sheet_name='Regions', usecols=range(0, 6))
-        regions = data.dropna(how='all')
+        datafr = read_excel(regions_fname, sheet_name='Regions', usecols=range(0, 6))
+        regions = sorted(list(datafr.iloc[:, 0])  )      # replaces: data.dropna(how='all')
     except (PermissionError, XLRDError) as err:
         print(ERROR_STR + '{} reading regions definition file {}'.format(err, regions_fname))
         sleep(sleepTime)
         exit(0)
 
-    return regions
+    return regions, datafr

@@ -208,12 +208,12 @@ def commonSection(form, grid, irow):
     form.w_combo11e = w_combo11e
     grid.addWidget(w_combo11e, irow, 3)
     
-    w_ave_wthr = QCheckBox('Start simulation from 1801')
+    w_strt_1801 = QCheckBox('Start simulation from 1801')
     helpText = 'Select this option to start simulation from 1801 - only activated when weather already exists\n' + \
                                                                     ' and start of simulation is indicated as 1901'
-    w_ave_wthr.setToolTip(helpText)
-    grid.addWidget(w_ave_wthr, irow, 4, 1, 2)
-    form.w_ave_wthr = w_ave_wthr
+    w_strt_1801.setToolTip(helpText)
+    grid.addWidget(w_strt_1801, irow, 4, 1, 2)
+    form.w_strt_1801 = w_strt_1801
 
     # row 13
     # ======
