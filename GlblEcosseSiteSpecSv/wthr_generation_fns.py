@@ -38,10 +38,17 @@ LTA_RECS_FN = 'lta_ave.txt'
 
 SPACER_LEN = 12
 
-def generate_all_weather(form, all_regions_flag = True):
+def generate_all_weather(form):
     """
     C
     """
+    all_regions = form.w_all_regions.isChecked()
+    if all_regions:
+        region_slctd = None
+    else:
+        region_slctd = form.w_combo00a.currentText()
+
+
     max_cells = int(form.w_max_cells.text())
     crop_name = form.w_combo00b.currentText()
 
@@ -70,6 +77,7 @@ def generate_all_weather(form, all_regions_flag = True):
     set_region_study(form)
 
     sims_dir = form.setup['sims_dir']
+    proj_dir = split(sims_dir)[0]
     sim_strt_year = 1801
 
     fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
@@ -86,16 +94,19 @@ def generate_all_weather(form, all_regions_flag = True):
 
         # for each region
         # ===============
-        for irow, region in enumerate(form.regions['Region']):
-            '''
-            if region != 'North America':  # mod
-                continue
-            '''
+        for irow, region in enumerate(form.regions_df['Region']):
+
+            if region_slctd is None:
+                pass
+            else:
+                if region_slctd != region:
+                    continue
+
             mess = '\nProcessing weather set: ' + this_gcm + '\tScenario: ' + scnr + '\tRegion: ' + region
             mess += '\tCrop: ' + crop_name
             print(mess)
 
-            lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions.iloc[irow][1:]
+            lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions_df.iloc[irow][1:]
             bbox = list([lon_ll, lat_ll, lon_ur, lat_ur])
 
             form.setup['region_wthr_dir'] = wthr_dir_abbrv
@@ -142,7 +153,7 @@ def generate_all_weather(form, all_regions_flag = True):
 
                     ngrow_this_band += 1
 
-                    alrdy_flag, dummy, met_fnames = _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon)
+                    alrdy_flag, dummy, met_fnames = _check_wthr_cell_exstnc(proj_dir, climgen, lat, lon)
                     if alrdy_flag:
                         nalrdys_this_band += 1
                         continue
@@ -161,11 +172,14 @@ def generate_all_weather(form, all_regions_flag = True):
                     # ====================================
                     pettmp_hist = fetch_WrldClim_data(form.lgr, lat, lon, climgen, hist_wthr_dsets,
                                                                     hist_lat_indx, hist_lon_indx, hist_flag=True)
-                    pettmp_fut = fetch_WrldClim_data(form.lgr, lat, lon, climgen, fut_wthr_dsets,
+                    if pettmp_hist is None:
+                        pettmp_fut = None
+                    else:
+                        pettmp_fut = fetch_WrldClim_data(form.lgr, lat, lon, climgen, fut_wthr_dsets,
                                                                                         fut_lat_indx, fut_lon_indx)
                     if pettmp_fut is None or pettmp_hist is None:
-                        pettmp_sim = None
                         nnodata += 1
+                        continue
                     else:
                         pettmp_sim = join_hist_fut_to_sim_wthr(climgen, pettmp_hist, pettmp_fut)
 
@@ -256,16 +270,16 @@ def make_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_sim):
 
     return
 
-def fetch_hist_lta_from_lat_lon(sims_dir, climgen, lat, lon):
+def fetch_hist_lta_from_lat_lon(proj_dir, climgen, lat, lon):
     """
     check existence of weather cell
     """
     read_lta_flag = True
-    integrity_flag, hist_lta_recs, met_fnames = _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag)
+    integrity_flag, hist_lta_recs, met_fnames = _check_wthr_cell_exstnc(proj_dir, climgen, lat, lon, read_lta_flag)
 
     return integrity_flag, hist_lta_recs, met_fnames
 
-def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag=False):
+def _check_wthr_cell_exstnc(proj_dir, climgen, lat, lon, read_lta_flag=False):
     """
     check existence and integrity of weather cell
     allowable criteria are 1) a full set of weather files, namely 300 met files e.g. met2014s.txt, lta_ave.txt and AVEMET.DAT
@@ -276,7 +290,7 @@ def _check_wthr_cell_exstnc(sims_dir, climgen, lat, lon, read_lta_flag=False):
     met_fnames = None
     gran_lat, gran_lon = _gran_coords_from_lat_lon(lat, lon)
     gran_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
-    clim_dir = normpath(join(sims_dir, climgen.region_wthr_dir, gran_coord))
+    clim_dir = normpath(join(proj_dir, 'Wthr', climgen.region_wthr_dir, gran_coord))
     if isdir(clim_dir):
         fns = listdir(clim_dir)
         nfiles = len(fns)
@@ -315,8 +329,8 @@ def write_avemet_files(form):
 
         # for each region
         # ===============
-        for irow, region in enumerate(form.regions['Region']):
-            lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions.iloc[irow][1:]
+        for irow, region in enumerate(form.regions_df['Region']):
+            lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions_df.iloc[irow][1:]
 
             # main traversal loop
             # ===================

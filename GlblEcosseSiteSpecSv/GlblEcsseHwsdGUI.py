@@ -33,6 +33,7 @@ from glbl_ecsse_high_level_test_fns import generate_banded_sims_test, all_genera
 from glbl_ecsse_low_level_test_fns import check_cntry_prvnc_mappings
 
 from wthr_generation_fns import generate_all_weather, write_avemet_files
+from replicate_configs_fns import copy_config_files
 
 WARNING_STR = '*** Warning *** '
 
@@ -375,8 +376,8 @@ class Form(QWidget):
         grid.addWidget(w_wthr_only, irow, icol)
         w_wthr_only.clicked.connect(self.gnrtWthrClicked)
         self.w_wthr_only = w_wthr_only
-        icol += 1
 
+        icol += 1
         w_avemet = QPushButton("Fix AVEMET")
         helpText = 'traverse previously written met data and write AVEMET.DAT file'
         w_avemet.setToolTip(helpText)
@@ -385,7 +386,16 @@ class Form(QWidget):
         grid.addWidget(w_avemet, irow, icol)
         w_avemet.clicked.connect(self.writeAvemetClicked)
 
-        icol += 4
+        icol += 1
+        w_rplc_cnfgs = QPushButton("Replc cnfgs")
+        helpText = 'replicate config files'
+        w_rplc_cnfgs.setToolTip(helpText)
+        w_rplc_cnfgs.setFixedWidth(WDGT_SIZE_100)
+        w_rplc_cnfgs.setEnabled(True)
+        grid.addWidget(w_rplc_cnfgs, irow, icol)
+        w_rplc_cnfgs.clicked.connect(self.rplctCnfgsClicked)
+
+        icol += 3
         w_test_fert = QPushButton("Test fertiliser")
         helpText = 'check netCDF4 files making up fertiliser inputs'
         w_test_fert.setToolTip(helpText)
@@ -429,6 +439,13 @@ class Form(QWidget):
         self.w_ur_lon.textChanged[str].connect(self.bboxTextChanged)
 
         self.changeRegion()  # populates lat/long boxes
+
+    def rplctCnfgsClicked(self):
+        """
+
+        """
+        copy_config_files(self)
+        return
 
     def checkWthrClicked(self):
         """

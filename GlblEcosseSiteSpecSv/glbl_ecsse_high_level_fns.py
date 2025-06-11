@@ -174,7 +174,11 @@ def generate_banded_sims(form, region, crop_name):
     ncompleted = 0
     nskipped = 0
     warning_count = 0
+    no_wthr = 0
     ngrowing = 0; nno_grow = 0
+
+    # main loop
+    # =========
     for nband, lat_indx in enumerate(range(lat_ur_indx, lat_ll_indx - 1, -1)):
 
         lat = mask_defn.lats[lat_indx]
@@ -183,6 +187,22 @@ def generate_banded_sims(form, region, crop_name):
 
         for lon_indx in range(lon_ll_indx, lon_ur_indx + 1):
             lon = mask_defn.lons[lon_indx]
+
+            last_time = update_progress(last_time, ncompleted, nskipped, ntotal_grow, ngrowing, nno_grow, hwsd)
+            if ncompleted >= max_cells:
+                break
+
+            # check weather
+            # =============
+            integrity_flag, hist_lta_recs, met_fnames = fetch_hist_lta_from_lat_lon(wthr_prj_dir, climgen, lat, lon)
+            if integrity_flag:
+                if hist_lta_recs is None or met_fnames is None:     # weather site is an empty folder
+                    nskipped += 1
+                    no_wthr += 1
+                    continue
+            else:
+                nskipped += 1
+                continue
 
             mask_val = mask_defn.nc_dset.variables['cropmask'][lat_indx, lon_indx]
             crop_grown = int(mask_val.item())
@@ -206,6 +226,7 @@ def generate_banded_sims(form, region, crop_name):
             if mu_global_pairs is None:
                 nskipped += 1
                 continue
+
             cell_hwsd_df = Cell_hwsd_data_frame(form.lgr, hwsd)  # create data frame for cell
             soil_recs = hwsd.get_soil_recs(mu_global_pairs)            # create soil records - updates bad_muglobals
             if soil_recs is None:
@@ -243,28 +264,16 @@ def generate_banded_sims(form, region, crop_name):
                 continue
 
             site_obj = MakeSiteFiles(form, climgen)
-
-            integrity_flag, hist_lta_recs, met_fnames = fetch_hist_lta_from_lat_lon(wthr_prj_dir, climgen, lat, lon)
-
-            if integrity_flag:
-                if hist_lta_recs is None or met_fnames is None:     #  weather site is an empty folder
-                    nskipped += 1
-                else:
-                    make_ecosse_files(site_obj, climgen, soil_defn, fert_recs, plant_day, harvest_day,
+            make_ecosse_files(site_obj, climgen, soil_defn, fert_recs, plant_day, harvest_day,
                                                                          yield_val, hist_lta_recs, met_fnames)
-                    ncompleted += 1
-            else:
-                nskipped += 1
-
-            last_time = update_progress(last_time, ncompleted, nskipped, ntotal_grow, ngrowing, nno_grow, hwsd)
-            if ncompleted >= max_cells:
-                break
+            ncompleted += 1
 
         # finished this band - report progress
         # ====================================
-        mess = 'Processed band {} of {} bands for lat: {}\tN growing locations: {}'.format(nband,
-                                                                                        nbands, lat, ngrow_this_band)
+        mess = 'Processed band {} of {} bands for lat: {}\t'.format(nband, nbands, lat)
+        mess += 'N growing locations: {}'.format(ngrow_this_band)
         form.lgr.info(mess)
+        # print(mess)
         if ncompleted >= max_cells:
             print('\nFinishing run after {} cells completed'.format(ncompleted))
             break

@@ -56,7 +56,8 @@ def set_region_study(form):
 
     region_study = (region + '_' + crop_name).replace(' ', '_') + '_' + study   # obsolete
     form.setup['region_study'] = study
-    form.setup['region_wthr_dir'] = form.regions['Wthr dir'][region_indx]
+    # form.setup['region_wthr_dir'] = form.regions_df['Wthr dir'][region_indx]
+    form.setup['region_wthr_dir'] = form.regions_abbrv[region_indx]
 
     return
 

@@ -64,7 +64,7 @@ class ClimGenNC(object,):
         else:
             sim_mnthly_flag = False     # daily timestep
 
-        ave_wthr_flag = form.w_ave_wthr.isChecked()
+        ave_wthr_flag = False   # form.w_ave_wthr.isChecked()
         if this_gcm is None:
             wthr_rsrce = form.w_combo10w.currentText()
             fut_clim_scen = form.w_combo10.currentText()

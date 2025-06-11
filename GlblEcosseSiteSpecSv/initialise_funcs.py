@@ -70,6 +70,7 @@ def initiation(form):
     form.setup['applic_str'] = APPLIC_STR
     form.setup['crops'] = dict({'Maize':15, 'Sugarcane':10, 'Wheat':5})
     form.regions = settings['regions']
+    form.regions_abbrv = settings['regions_abbrv']
     form.regions_df = settings['regions_df']
     form.fobjs = None
     form.zeros_file = None
@@ -324,7 +325,7 @@ def _read_setup_file(applic_str):
     # file comprising world regions
     # ============================
     if isfile(regions_fname):
-        settings['regions'],  settings['regions_df'] = _read_regions_file(regions_fname)
+        settings['regions'], settings['regions_abbrv'], settings['regions_df'] = _read_regions_file(regions_fname)
     else:
         print(ERROR_STR + 'reading {}\tregions definition file {} must exist'.format(setup_file, regions_fname))
         sleep(sleepTime)
@@ -733,9 +734,10 @@ def _read_regions_file(regions_fname):
     try:
         datafr = read_excel(regions_fname, sheet_name='Regions', usecols=range(0, 6))
         regions = sorted(list(datafr.iloc[:, 0])  )      # replaces: data.dropna(how='all')
+        regions_abbrv = sorted(list(datafr.iloc[:, 5]))  # replaces: data.dropna(how='all')
     except (PermissionError, XLRDError) as err:
         print(ERROR_STR + '{} reading regions definition file {}'.format(err, regions_fname))
         sleep(sleepTime)
         exit(0)
 
-    return regions, datafr
+    return regions, regions_abbrv, datafr
