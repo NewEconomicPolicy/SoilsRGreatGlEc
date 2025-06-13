@@ -100,6 +100,7 @@ def generate_all_weather(form):
                 pass
             else:
                 if region_slctd != region:
+                    print('Ignoring region: ' + region)
                     continue
 
             mess = '\nProcessing weather set: ' + this_gcm + '\tScenario: ' + scnr + '\tRegion: ' + region
@@ -129,14 +130,19 @@ def generate_all_weather(form):
 
             open_proj_NC_sets(mask_defn, yield_defn, dates_defn, fert_defns)
             hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
+            ncmpltd = 0
+            warning_count = 0
+            ngrowing = 0
+            nno_grow = 0
+            nalrdys = 0
 
             # main AOI traversal loops - outer: North to South, inner: East to West
             # ========================
-            ncmpltd, warning_count, ngrowing, nno_grow, nalrdys = 5*[0]      # for each band
             last_time = time()
             for nband, lat_indx in enumerate(range(lat_ur_indx, lat_ll_indx - 1, -1)):
                 if nband > MAX_BANDS:
                     break
+
 
                 lat = mask_defn.lats[lat_indx]
 
@@ -208,28 +214,27 @@ def generate_all_weather(form):
                     print('\nFinished checking after {} cells completed\tband: {}'.format(ncmpltd, nband))
                     break
 
-            # close NC files
-            # ==============
-            close_proj_NC_sets(mask_defn, yield_defn, dates_defn, fert_defns)
-            for metric in list(['precip', 'tas']):
-                hist_wthr_dsets[metric].close()
-                fut_wthr_dsets[metric].close()
+        # close NC files
+        # ==============
+        close_proj_NC_sets(mask_defn, yield_defn, dates_defn, fert_defns)
+        for metric in list(['precip', 'tas']):
+            hist_wthr_dsets[metric].close()
+            fut_wthr_dsets[metric].close()
 
-            ntotal_str = format_string('%d', ntotal_grow, grouping=True)
-            ntotal_prcnt = round(100 * (ngrowing / ntotal_grow), 2)
-            mess = 'Completed Region: ' + region + '\tLocations - growing: '
-            mess += '{}\tno grow: {}\ttotal: {}\t {}%'.format(ngrowing, nno_grow, ntotal_str, ntotal_prcnt)
-            print(mess)
+        ntotal_str = format_string('%d', ntotal_grow, grouping=True)
+        ntotal_prcnt = round(100 * (ngrowing / ntotal_grow), 2)
+        mess = 'Completed Region: ' + region + '\tLocations - growing: '
+        mess += '{}\tno grow: {}\ttotal: {}\t {}%'.format(ngrowing, nno_grow, ntotal_str, ntotal_prcnt)
+        print(mess)
 
-            if QUICK_FLAG:
-                break
+        if QUICK_FLAG:
+            break
 
         print('Completed weather set: ' + this_gcm + '\tScenario: ' + scnr + '\n')
 
     print('Finished weather generation - total number of sets written: {}'.format(ntotal_wrttn))
 
     return
-
 
 def make_avemet_file(clim_dir, lta_precip, lta_pet, lta_tmean):
     """
@@ -290,7 +295,12 @@ def _check_wthr_cell_exstnc(proj_dir, climgen, lat, lon, read_lta_flag=False):
     met_fnames = None
     gran_lat, gran_lon = _gran_coords_from_lat_lon(lat, lon)
     gran_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
-    clim_dir = normpath(join(proj_dir, climgen.region_wthr_dir, gran_coord))
+
+    if split(proj_dir)[1] == 'Wthr':
+        clim_dir = normpath(join(proj_dir, climgen.region_wthr_dir, gran_coord))
+    else:
+        clim_dir = normpath(join(proj_dir, 'Wthr', climgen.region_wthr_dir, gran_coord))
+
     if isdir(clim_dir):
         fns = listdir(clim_dir)
         nfiles = len(fns)
