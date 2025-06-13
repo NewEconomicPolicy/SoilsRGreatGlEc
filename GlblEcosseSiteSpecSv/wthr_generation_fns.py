@@ -290,7 +290,7 @@ def _check_wthr_cell_exstnc(proj_dir, climgen, lat, lon, read_lta_flag=False):
     met_fnames = None
     gran_lat, gran_lon = _gran_coords_from_lat_lon(lat, lon)
     gran_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
-    clim_dir = normpath(join(proj_dir, 'Wthr', climgen.region_wthr_dir, gran_coord))
+    clim_dir = normpath(join(proj_dir, climgen.region_wthr_dir, gran_coord))
     if isdir(clim_dir):
         fns = listdir(clim_dir)
         nfiles = len(fns)
