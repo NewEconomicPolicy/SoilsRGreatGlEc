@@ -22,6 +22,7 @@ from time import sleep
 from sys import exit
 from pandas import read_excel
 from xlrd import XLRDError
+from PyQt5.QtWidgets import QApplication
 
 from set_up_logging import set_up_logging
 from glbl_ecss_cmmn_cmpntsGUI import print_resource_locations
@@ -149,6 +150,7 @@ def change_config_file(form, new_study = None):
         read_config_file(form)
         form.setup['study'] = new_study
         form.w_study.setText(new_study)
+        QApplication.processEvents()
         return
     else:
         print(WARNING_STR + 'Could not locate ' + config_file)
