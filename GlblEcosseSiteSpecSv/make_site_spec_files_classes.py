@@ -475,7 +475,7 @@ class MakeSiteFiles(object):
 
         imfunc = 0    # Calculation of moisture rate modifiers: IMFUNC_ROTHC = 0, IMFUNC_HADLEY = 1
         itfunc = 0    # Calculation of temp.rate modifiers: ITFUNC_ROTHC = 0, ITFUNC_HADLEY = 1
-        ch4model = 0  # CH4 model: CH4 model off = 0, CH4_OFF; Richards CH4 model on = 1, CH4_RICHARDS; Aitkenhead CH4 model on = 2, CH4_AITKENHEAD
+        ch4model = 1  # CH4 model: CH4 model off = 0, CH4_OFF; Richards CH4 model on = 1, CH4_RICHARDS; Aitkenhead CH4 model on = 2, CH4_AITKENHEAD
         ec_eqrun = 0  # ECOSSE equilibrium run, (0 = off, 1 = on)
 
         with open(join(directory, 'fnames.dat'), 'w') as f:
