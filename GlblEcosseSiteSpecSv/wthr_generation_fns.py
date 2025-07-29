@@ -89,8 +89,11 @@ def generate_all_weather(form):
     ntotal_wrttn = 0
     for wthr_set in form.weather_set_linkages['WrldClim']:
         this_gcm, scnr = wthr_set.split('_')
-        if scnr == 'hist' or scnr != '585':             # mod
+        if scnr == 'hist':  # apply filter
             continue
+        elif scnr != '585':
+            if this_gcm != 'UKESM1-0-LL':
+                continue
 
         # for each region
         # ===============
