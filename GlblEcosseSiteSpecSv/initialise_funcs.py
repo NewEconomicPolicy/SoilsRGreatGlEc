@@ -520,7 +520,7 @@ def read_config_file(form):
         wthr_rsrce = 'CRU'  # default
 
     nitems = form.w_combo10w.count()
-    if wthr_rsrce_indx >= 0 and wthr_rsrce_indx < nitems:
+    if 0 <= wthr_rsrce_indx < nitems:
         form.w_combo10w.setCurrentText(wthr_rsrce)
 
     wthr_rsrce = form.w_combo10w.currentText()
@@ -535,7 +535,7 @@ def read_config_file(form):
             sleep(sleepTime)
             exit(0)
 
-    scenario = config[grp]['climScnr']
+    scenario = str(config[grp]['climScnr'])
     hist_strt_year = config[grp]['cruStrtYr']
     hist_end_year = config[grp]['cruEndYr']
     sim_strt_year = config[grp]['futStrtYr']
