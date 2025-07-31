@@ -38,8 +38,8 @@ WARNING_STR = '*** Warning *** '
 
 MAX_COUNTRIES = 350
 
-RUN_SETTINGS_SETUP_LIST =[ 'completed_max', 'check_space_every', 'kml_flag', 'last_gcm_only_flag',
-                                    'max_countries', 'space_remaining_limit', 'soil_test_flag', 'zeros_file']
+RUN_SETTINGS_SETUP_LIST = ['completed_max', 'check_space_every', 'kml_flag', 'last_gcm_only_flag',
+                                'max_countries', 'space_remaining_limit', 'soil_test_flag', 'zeros_file']
 
 SETTINGS_SETUP_LIST = ['config_dir', 'fname_png', 'log_dir', 'n_inputs_xls', 'proj_path', 'regions_fname',
                        'sims_dir', 'weather_dir', 'shp_dir', 'shp_dir_gadm', 'python_exe', 'runsites_py',
@@ -64,12 +64,12 @@ def initiation(form):
     form.rota_pattern = None
     form.glbl_n_inpts = None
 
-    settings = _read_setup_file(APPLIC_STR )
+    settings = _read_setup_file(APPLIC_STR)
     form.setup = settings['setup']
     form.settings = settings['setup']   # TODO: duplication but necessary for logging
 
     form.setup['applic_str'] = APPLIC_STR
-    form.setup['crops'] = dict({'Maize':15, 'Sugarcane':10, 'Wheat':5})
+    form.setup['crops'] = dict({'Maize': 15, 'Sugarcane': 10, 'Wheat': 5})
     form.regions = settings['regions']
     form.regions_abbrv = settings['regions_abbrv']
     form.regions_df = settings['regions_df']
@@ -133,7 +133,7 @@ def initiation(form):
 
     return
 
-def change_config_file(form, new_study = None):
+def change_config_file(form, new_study=None):
     """
     identify and read the new configuration file
     """
@@ -183,19 +183,19 @@ def build_and_display_studies(form):
     return config_files
 
 def _read_crop_defns(crop_pars_fname):
-        """
-        read crop names and their corresponding codes
-        """
-        with open(crop_pars_fname) as fhand:
-            lines = fhand.readlines()
+    """
+    read crop names and their corresponding codes
+    """
+    with open(crop_pars_fname) as fhand:
+        lines = fhand.readlines()
 
-        crop_defns = {}
-        for iline in range(0, len(lines), 9):
-            crop_name = lines[iline].strip()
-            code = int(lines[iline + 1].strip())
-            crop_defns[crop_name] = code
+    crop_defns = {}
+    for iline in range(0, len(lines), 9):
+        crop_name = lines[iline].strip()
+        code = int(lines[iline + 1].strip())
+        crop_defns[crop_name] = code
 
-        return crop_defns
+    return crop_defns
 
 def _default_parms_settings():
     """
@@ -225,9 +225,9 @@ def _read_site_specific_parms():
     """
     read programme run settings from the parameters file, if it exists
     """
-    func_name = __prog__ + '  _read_site_specific_parms'
 
     # look for setup file here...
+    # ===========================
     parms_setup_file = join(getcwd(), 'additional_setup', 'site_specific_parms.json')
 
     if exists(parms_setup_file):
@@ -246,7 +246,6 @@ def _read_setup_file(applic_str):
     # read settings used for programme from the setup file, if it exists,
     # or create setup file using default values if file does not exist
     """
-    func_name = __prog__ + ' _read_setup_file'
 
     # validate setup file
     # ===================
@@ -426,7 +425,7 @@ def _write_default_config_file(config_file):
     ll_lon,    ll_lat  ur_lon,ur_lat
     stanza if config_file needs to be created
     """
-    bbox_default = [0,0,0,0]
+    bbox_default = [0, 0, 0, 0]
     _default_config = {
         'minGUI': {
             'strt1801Flag': False,
@@ -458,8 +457,6 @@ def read_config_file(form):
     read widget settings used in the previous programme session from the config file, if it exists,
     or create config file using default settings if config file does not exist
     """
-    func_name = __prog__ + ' read_config_file'
-
     config_file = form.setup['config_file']
     if exists(config_file):
         try:
@@ -483,19 +480,19 @@ def read_config_file(form):
                 sleep(sleepTime)
                 exit(0)
 
-    ave_weather        = config[grp]['strt1801Flag']
-    auto_run_ec        = config[grp]['autoRunEcFlag']
+    ave_weather = config[grp]['strt1801Flag']
+    auto_run_ec = config[grp]['autoRunEcFlag']
     form.setup['bbox'] = config[grp]['bbox']
-    daily_mode         = config[grp]['daily_mode']
-    cultiv_json_fname  = config[grp]['cultivJsonFname']
+    daily_mode = config[grp]['daily_mode']
+    cultiv_json_fname = config[grp]['cultivJsonFname']
 
     manure_flag = config[grp]['manureFlag']
-    rota_json_fname    = config[grp]['rotaJsonFname']
-    rotation_flag      = config[grp]['rotationFlag']
-    peren_crops        = config[grp]['perenCrops']
+    rota_json_fname = config[grp]['rotaJsonFname']
+    rotation_flag = config[grp]['rotationFlag']
+    peren_crops = config[grp]['perenCrops']
 
-    max_cells          = config[grp]['maxCells']
-    all_regions        = config[grp]['allRegionsFlag']
+    max_cells = config[grp]['maxCells']
+    all_regions = config[grp]['allRegionsFlag']
     yr_from = config[grp]['yearFrom']
 
     # build bounding boxes for countries and peovinces of large countries
@@ -575,7 +572,7 @@ def read_config_file(form):
     form.w_ur_lon.setText(str(ur_lon))
     form.w_ur_lat.setText(str(ur_lat))
     form.lbl03.setText(format_bbox(form.setup['bbox'], area))
-    form.bbox = form.setup['bbox'] # legacy
+    form.bbox = form.setup['bbox']  # legacy
 
     form.w_max_cells.setText(str(max_cells))
     form.w_yr_from.setText(str(yr_from))
@@ -708,7 +705,7 @@ def write_config_file(form):
             'daily_mode': form.w_daily.isChecked(),
             'manureFlag': form.w_manure.isChecked(),
             'perenCrops': form.w_use_peren.isChecked(),
-            'yearFrom' : form.w_yr_from.text(),
+            'yearFrom': form.w_yr_from.text(),
             'rotationFlag': form.w_crop_rota.isChecked(),
             'regionIndx': form.w_combo00a.currentIndex(),
             'wthrRsrce': form.w_combo10w.currentText()
@@ -734,8 +731,8 @@ def _read_regions_file(regions_fname):
     """
     print('Will use regions definition file: ' + regions_fname)
     try:
-        datafr = read_excel(regions_fname, sheet_name='Regions', usecols=range(0, 6))
-        regions = sorted(list(datafr.iloc[:, 0])  )      # replaces: data.dropna(how='all')
+        datafr = read_excel(io=regions_fname, sheet_name='Regions', usecols='A:F')
+        regions = sorted(list(datafr.iloc[:, 0]))      # replaces: data.dropna(how='all')
         regions_abbrv = sorted(list(datafr.iloc[:, 5]))  # replaces: data.dropna(how='all')
     except (PermissionError, XLRDError) as err:
         print(ERROR_STR + '{} reading regions definition file {}'.format(err, regions_fname))
