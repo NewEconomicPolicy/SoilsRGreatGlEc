@@ -22,7 +22,6 @@ def run_ecosse_wrapper(form):
     """
     C
     """
-    func_name = __prog__ + ' runEcosse'
 
     # components of the command string exist have been checked at initiation
     # ======================================================================
@@ -36,7 +35,6 @@ def write_runsites_config_file(form):
     """
     C
     """
-    func_name = __prog__ + ' write_runsites_config_file'
 
     # read the runsites config file and edit one line
     # ======================================

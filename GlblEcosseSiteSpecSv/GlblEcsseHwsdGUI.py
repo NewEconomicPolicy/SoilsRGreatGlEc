@@ -449,7 +449,7 @@ class Form(QWidget):
 
     def checkWthrClicked(self):
         """
-
+        C
         """
         wthr_scenarios = self.wthr_scenarios
         sims_dir = self.setup['sims_dir']
@@ -467,7 +467,7 @@ class Form(QWidget):
 
     def writeAvemetClicked(self):
         """
-
+        C
         """
         write_avemet_files(self)
 
@@ -566,16 +566,16 @@ class Form(QWidget):
 
     def createSimsClicked(self):
         """
-
+        C
         """
         hist_start_year = int(self.w_combo09s.currentText())
-        hist_end_year   = int(self.w_combo09e.currentText())
+        hist_end_year = int(self.w_combo09e.currentText())
         if hist_start_year > hist_end_year:
             print('Historic end year must be greater or equal to the start year')
             return
 
         fut_start_year = int(self.w_combo11s.currentText())
-        fut_end_year   = int(self.w_combo11e.currentText())
+        fut_end_year = int(self.w_combo11e.currentText())
         if fut_start_year > fut_end_year:
             print('Simulation end year must be greater or equal to the start year')
             return
