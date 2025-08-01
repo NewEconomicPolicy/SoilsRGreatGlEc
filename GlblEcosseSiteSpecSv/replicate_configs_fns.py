@@ -13,7 +13,7 @@ __prog__ = 'replicate_configs_fns'
 __version__ = '0.0.1'
 __author__ = 's03mm5'
 
-from os.path import join, split, splitext, normpath
+from os.path import join, split, splitext, normpath, isfile
 from copy import copy
 from json import load as json_load, dump as json_dump
 
@@ -38,8 +38,14 @@ def copy_config_files(form):
         if this_reg_abbrv == region_abbrv:
             short_fn_af = form.setup['applic_str'] + '_' + study + '.json'
             config_fn_path = normpath( join(config_dir, short_fn_af) )
-            with open(config_fn_path, 'r') as fobj:
-                config_content = json_load(fobj)
+
+            # check file in case it has been deleted
+            # ======================================
+            if isfile(config_fn_path):
+                with open(config_fn_path, 'r') as fobj:
+                    config_content = json_load(fobj)
+            else:
+                continue
 
             # write config files for the other 5 regions
             # ==========================================
