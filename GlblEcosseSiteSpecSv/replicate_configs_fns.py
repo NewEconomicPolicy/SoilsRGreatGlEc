@@ -22,12 +22,8 @@ ERROR_STR = '*** Error *** '
 
 def copy_config_files(form):
     """
-    method to look for fertiliser lines in original template files and create new template
-    with these three lines as replacements:
+    take first config file which is Africa and replicate this file for the other regions
     """
-    content_dict = dict({'NO3':'7.7          # Percentage NO3', 'NH4':'84.6         # Percentage NH4',
-                                                                        'urea':'7.7          # Percentage urea'})
-
     config_dir = form.settings['config_dir']
     region_indx = 0
     region_abbrv = form.regions_df['Wthr dir'][region_indx]
