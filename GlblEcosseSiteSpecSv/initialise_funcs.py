@@ -253,6 +253,7 @@ def _read_setup_file(applic_str):
     setup_file = join(getcwd(), fname_setup)
 
     if exists(setup_file):
+        print('Opening setup file ' + setup_file)
         with open(setup_file, 'r') as fsetup:
             try:
                 settings = json_load(fsetup)
