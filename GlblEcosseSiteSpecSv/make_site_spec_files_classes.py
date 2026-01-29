@@ -16,14 +16,14 @@ from shutil import copyfile
 
 from pedotransfer import boelter, bss
 
-def _crop_rotation(iyr, climgen, rota_pattern):
+def _crop_rotation(iyr, climgen, rota_pattern, rota_flag):
     """
     return crop name and code for this year
     """
     crop_code = climgen.crop_codes[0]
     crop_name = climgen.crop_names[0]
 
-    if rota_pattern is not None:
+    if rota_pattern is not None and rota_flag:
         if iyr >= rota_pattern['start_year']:
 
             crop_names = list(rota_pattern['crops'].keys())
@@ -76,6 +76,12 @@ class MakeSiteFiles(object):
         else:
             equil_mode = form.equimode
             manure_flag = False
+
+        if hasattr(form, 'w_crop_rota'):
+            rotation_flag = form.w_crop_rota.isChecked()
+        else:
+            rotation_flag = False
+        self.rota_flag = rotation_flag
 
         self.comments = comments      # True = write comments, False = leave them out
         self.spacer_len = spacer_len  # Number of spaces between data and comment
@@ -331,7 +337,7 @@ class MakeSiteFiles(object):
             harvest_ts   = naccum_tsteps + harvest_date.month
 
             crop = Crop()
-            crop.crop_name, crop.code = _crop_rotation(iyr, climgen, self.rota_pattern)
+            crop.crop_name, crop.code = _crop_rotation(iyr, climgen, self.rota_pattern, self.rota_flag)
             crop.sowing_doy  = sowing_ts
             crop.harvest_doy = harvest_ts
             crop.n_uptake    = n_uptake
