@@ -8,7 +8,7 @@
 #-------------------------------------------------------------------------------
 #
 """
-__prog__ = 'wthr_generation_fns'
+__prog__ = 'wthr_generation_rothc_fns'
 __version__ = '0.0.1'
 __author__ = 's03mm5'
 
@@ -16,6 +16,8 @@ from time import time
 from locale import format_string
 from os.path import join, normpath, isdir, split
 from os import listdir, makedirs
+
+from netCDF4 import Dataset
 
 from getClimGenNC import ClimGenNC
 from getClimGenFns import (fetch_WrldClim_data, open_wthr_NC_sets, get_wthr_nc_coords, join_hist_fut_to_sim_wthr)
@@ -42,15 +44,7 @@ def generate_rothc_weather(form):
     """
     C
     """
-    all_regions = form.w_all_regions.isChecked()
-    if all_regions:
-        region_slctd = None
-    else:
-        region_slctd = form.w_combo00a.currentText()
-
-
     max_cells = int(form.w_max_cells.text())
-    crop_name = form.w_combo00b.currentText()
 
     # check resolution
     # ================
@@ -64,8 +58,6 @@ def generate_rothc_weather(form):
 
     # define study
     # ============
-    set_region_study(form)
-
     sims_dir = form.setup['sims_dir']
     proj_dir = split(sims_dir)[0]
     sim_strt_year = 1801
@@ -85,29 +77,33 @@ def generate_rothc_weather(form):
             if this_gcm != 'UKESM1-0-LL':
                 continue
 
-        mess = '\nProcessing weather set: ' + this_gcm + '\tScenario: ' + scnr + '\tRegion: ' + region
-        mess += '\tCrop: ' + crop_name
+        # process complete dataset
+        # ========================
+        wthr_set = form.wthr_sets[this_gcm]
+        strt_year = wthr_set['year_start']
+        end_year  = wthr_set['year_end']
+        ds_precip = wthr_set['ds_precip']
+        ds_tas = wthr_set['ds_tas']
+
+        hist_wthr_dsets, fut_wthr_dsets = dict(), dict()
+        for metric, ds_fname in zip(list(['precip', 'tas']), list(['ds_precip', 'ds_tas'])):
+            # hist_wthr_dsets[metric] = Dataset(hist_wthr_set_defn[ds_fname])
+            fut_wthr_dsets[metric] = Dataset(wthr_set[ds_fname])
+
+        for lat_indx, lat in enumerate(wthr_set['longitudes']):
+            for lon_indx, lon in enumerate(wthr_set['latitudes']):
+                pass
+            pass
+
+        mess = '\nProcessing weather set: ' + this_gcm + '\tScenario: ' + scnr
         print(mess)
+        print('Completed weather set: ' + this_gcm + '\tScenario: ' + scnr + '\n')
 
-        lon_ll, lon_ur, lat_ll, lat_ur, wthr_dir_abbrv = form.regions_df.iloc[irow][1:]
-        bbox = list([lon_ll, lat_ll, lon_ur, lat_ur])
+    print('Finished RothC weather generation - total number of sets written: {}'.format(ntotal_wrttn))
 
-        form.setup['region_wthr_dir'] = wthr_dir_abbrv
-        climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
-
-        # identify geo-extent for this run
-        # ================================
-        lat_ur_indx, lon_ur_indx, ret_code = mask_defn.get_nc_coords(lat_ur, lon_ur)
-        lat_ll_indx, lon_ll_indx, ret_code = mask_defn.get_nc_coords(lat_ll, lon_ll)
-        lat_ur_indx, ntotal_grow = check_run_mask(mask_defn, lon_ll_indx, lat_ll_indx, lon_ur_indx, lat_ur_indx)
-        if ntotal_grow == 0:
-            print('Nothing to grow for this AOI')
-            return
-
-        nbands = lat_ur_indx - lat_ll_indx + 1
-        print('Will process {} bands'.format(nbands))
-
-        #  open required NC sets
+    return
+'''
+       #  open required NC sets
         # ======================
         hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
         ncmpltd = 0
@@ -207,12 +203,7 @@ def generate_rothc_weather(form):
 
         if QUICK_FLAG:
             break
-
-        print('Completed weather set: ' + this_gcm + '\tScenario: ' + scnr + '\n')
-
-    print('Finished RothC weather generation - total number of sets written: {}'.format(ntotal_wrttn))
-
-    return
+'''
 
 def make_rthc_wthr_files(site, lat, lon, climgen, pettmp_hist, pettmp_sim):
     """
