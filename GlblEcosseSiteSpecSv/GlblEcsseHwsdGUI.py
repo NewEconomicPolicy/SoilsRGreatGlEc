@@ -33,6 +33,7 @@ from glbl_ecsse_high_level_test_fns import generate_banded_sims_test, all_genera
 from glbl_ecsse_low_level_test_fns import check_cntry_prvnc_mappings
 
 from wthr_generation_fns import generate_all_weather, write_avemet_files
+from wthr_generation_rothc_fns import generate_rothc_weather
 from replicate_configs_fns import copy_config_files
 
 WARNING_STR = '*** Warning *** '
@@ -395,7 +396,16 @@ class Form(QWidget):
         grid.addWidget(w_rplc_cnfgs, irow, icol)
         w_rplc_cnfgs.clicked.connect(self.rplctCnfgsClicked)
 
-        icol += 3
+        icol += 1
+        w_rothc_wthr = QPushButton("RothC wthr")
+        helpText = 'Generate RothC weathrer'
+        w_rothc_wthr.setToolTip(helpText)
+        w_rothc_wthr.setFixedWidth(WDGT_SIZE_100)
+        w_rothc_wthr.setEnabled(True)
+        grid.addWidget(w_rothc_wthr, irow, icol)
+        w_rothc_wthr.clicked.connect(self.gnrtRthCwthrClicked)
+
+        icol += 2
         w_test_fert = QPushButton("Test fertiliser")
         helpText = 'check netCDF4 files making up fertiliser inputs'
         w_test_fert.setToolTip(helpText)
@@ -439,6 +449,14 @@ class Form(QWidget):
         self.w_ur_lon.textChanged[str].connect(self.bboxTextChanged)
 
         self.changeRegion()  # populates lat/long boxes
+
+    def gnrtRthCwthrClicked(self):
+        """
+        generate weather for all regions, scenarios and GCMs
+        """
+        generate_rothc_weather(self)
+
+        return
 
     def rplctCnfgsClicked(self):
         """
