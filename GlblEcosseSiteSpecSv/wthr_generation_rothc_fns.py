@@ -21,6 +21,7 @@ from thornthwaite import thornthwaite
 ERROR_STR = '*** Error *** '
 WARNING_STR = '*** Warning *** '
 QUICK_FLAG = False       # forces break from loops after max cells reached in first GCM and SSP
+NC_FROM_TIF_FN ='E:\\Saeed\\GSOCmap_0.25.nc'
 
 def generate_rothc_weather(form):
     """
@@ -72,14 +73,18 @@ def generate_rothc_weather(form):
             fut_wthr_dsets[metric] = Dataset(wthr_set[ds_fname])
 
         ntotal_wrttn = 0
+        '''
         for lat_indx, lat in enumerate(wthr_set['longitudes']):
             for lon_indx, lon in enumerate(wthr_set['latitudes']):
                 ntotal_wrttn += 1
-
+        '''
         mess = '\nProcessing weather set: ' + this_gcm + '\tScenario: ' + scnr
         print(mess)
         mess = 'Completed weather set: ' + this_gcm + '\tScenario: ' + scnr
         print(mess + '\tfiles written: ' + format(ntotal_wrttn, ',') + ' \n')
+
+    dset = Dataset(NC_FROM_TIF_FN)
+    dset.close()
 
     print('Finished RothC weather generation - total number of sets written: {}'.format(ntotal_wrttn))
 
