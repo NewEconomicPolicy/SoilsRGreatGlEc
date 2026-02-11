@@ -89,11 +89,18 @@ class ClimGenNC(object,):
 
         self.region_wthr_dir = region_wthr_dir
 
-        self.region_study = form.setup['region_study']
+        if 'region_study' in form.setup:
+            self.region_study = form.setup['region_study']
+        else:
+            self.region_study = None
+
         self.region = region
-        crop_code = form.setup['crops'][crop_name]
-        self.crop_names = list([crop_name])
-        self.crop_codes = list([crop_code])
+        if crop_name is None:
+            self.crop_names, self.crop_codes = 2*[None]
+        else:
+            crop_code = form.setup['crops'][crop_name]
+            self.crop_names = list([crop_name])
+            self.crop_codes = list([crop_code])
 
         # make sure start and end years are within dataset limits
         # =======================================================
