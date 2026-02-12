@@ -58,7 +58,7 @@ def generate_rothc_weather(form):
     # ============
     sims_dir = form.setup['sims_dir']
     proj_dir = split(sims_dir)[0]
-    sim_strt_year = 1801
+    sim_strt_year = 2001
 
     fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
     sim_end_year = form.wthr_sets[fut_wthr_set]['year_end']
@@ -183,7 +183,7 @@ def _fetch_header_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr
     scnr = climgen.fut_clim_scen
     frst_rec = 'From the WorldClim database of global weather and climate data using GCM: '
     frst_rec += gcm + '\tScenario: ' + scnr
-    period = str(climgen.fut_wthr_set_defn['year_start']) + '-' + str(climgen.fut_wthr_set_defn['year_end'])
+    period = str(climgen.sim_start_year) + '-' + str(climgen.sim_end_year)
     location_rec = '[Long= ' + str(round(lon, 3)) + ', ' + str(round(lon_wthr, 3))
     location_rec += '] [Lati= ' + str(round(lat, 3)) + ', ' + str(round(lat_wthr))
     location_rec +=  '] [Grid X,Y= ' + str(lon_indx) + ', ' + str(lat_indx) + ']'
