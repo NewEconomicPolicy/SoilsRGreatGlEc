@@ -146,7 +146,6 @@ def generate_all_weather(form):
                 if nband > MAX_BANDS:
                     break
 
-
                 lat = mask_defn.lats[lat_indx]
 
                 ngrow_this_band, nalrdys_this_band, nnodata, noutbnds = 4*[0]
