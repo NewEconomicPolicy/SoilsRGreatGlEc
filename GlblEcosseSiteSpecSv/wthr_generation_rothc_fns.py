@@ -152,7 +152,7 @@ def generate_banded_rothc_wthr(form):
     called from GUI; based on generate_banded_sims from HoliSoilsSpGlEc project
     GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
     """
-    LAT_STEP = 0.5
+    LAT_STEP = 1.0
     START_AT_BAND = 0
     END_AT_BAND = 20
 
@@ -197,7 +197,7 @@ def generate_banded_rothc_wthr(form):
     region, crop_name = 2 * [None]
     climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
 
-    num_band = -999
+
     band_reports = []
     lat_ur = lat_ur_aoi
     for iband in range(nbands):
@@ -255,7 +255,7 @@ def read_soil_organic_detail(form):
     soil_org_set['base_dir'] = split(NC_FROM_TIF_FN)[0]
     soil_org_set['ds_soil_org'] = NC_FROM_TIF_FN
 
-    return
+    return soil_org_set
 
 def _fetch_soil_org_nc_parms(nc_fname):
     """
