@@ -197,7 +197,6 @@ def generate_banded_rothc_wthr(form):
     region, crop_name = 2 * [None]
     climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
 
-
     band_reports = []
     lat_ur = lat_ur_aoi
     for iband in range(nbands):
@@ -276,8 +275,8 @@ def _fetch_soil_org_nc_parms(nc_fname):
 
     # use list comprehension to convert to floats
     # ===========================================
-    lats = [round(float(lat), 2) for lat in list(lat_var)]  # rounding introduced for EObs
-    lons = [round(float(lon), 2) for lon in list(lon_var)]
+    lats = [round(float(lat), 5) for lat in list(lat_var)]  # rounding introduced for EObs
+    lons = [round(float(lon), 5) for lon in list(lon_var)]
 
     lat_frst = lats[0]
     lon_frst = lons[0]
