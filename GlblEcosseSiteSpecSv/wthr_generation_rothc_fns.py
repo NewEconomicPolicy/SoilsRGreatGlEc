@@ -34,7 +34,7 @@ METRIC_LIST = list(['precip', 'tas'])
 METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
 
-def _generate_rothc_weather(form, climgen, num_band, out_dir, max_cells):
+def _generate_rothc_weather(form, climgen, org_soil_dset, num_band, bbox, out_dir, max_cells):
     """
     C
     """
@@ -43,79 +43,63 @@ def _generate_rothc_weather(form, climgen, num_band, out_dir, max_cells):
 
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
 
-    # check each value, discarding Nans - total size of file is 618 x 1440 = 889,920 cells
-    # ====================================================================================
-    dset = Dataset(NC_FROM_TIF_FN)
-    latvar = dset.variables['lat']
-    lonvar = dset.variables['lon']
     last_time = time()
+    aoi_res = _fetch_grid_cells_from_socnc(org_soil_dset, bbox)
+    lon_ll_aoi, lat_ll_aoi, lon_ur_aoi, lat_ur_aoi = bbox
 
-    nmasked, noutbnds, nnodata, ncmpltd, nskipped = 5*[0]
-    for lat_indx, lat_ma in enumerate(latvar):
-        for lon_indx, lon_ma in enumerate(lonvar):
-            lat = lat_ma.item()
-            lon = lon_ma.item()
-            last_time = update_wthr_rothc_progress(last_time, nmasked, noutbnds, nnodata, ncmpltd, nskipped)
-            soil_carb = dset.variables['Band1'][lat_indx][lon_indx]
-            if is_masked(soil_carb):
-                val = soil_carb.item()
-                nmasked += 1
-            else:
-                # generate weather dataset indices which enclose the AOI for this band
-                # ====================================================================
-                hist_lat_indx, hist_lon_indx = get_wthr_nc_coords(climgen.hist_wthr_set_defn, lat, lon)
-                fut_lat_indx, fut_lon_indx = get_wthr_nc_coords(climgen.fut_wthr_set_defn, lat, lon)
-                if hist_lat_indx < 0 or fut_lat_indx < 0:
-                    noutbnds += 1
-                    continue
+    num_meta_cells = len(aoi_res)
+    mess = 'Band aoi LL lon/lat: {} {}\t'.format(lon_ll_aoi, lat_ll_aoi)
+    print(mess+ 'UR lon/lat: {} {}\t# meta cells: {}'.format(lon_ur_aoi, lat_ur_aoi, num_meta_cells))
+    QApplication.processEvents()
 
-                # setup output files
-                # ==================
-                grid_coord = '{0:0=5g}_{1:0=5g}'.format(lat_indx, lon_indx)
+    nskipped, nnodata, ncmpltd = 3*[0]
+    for site_rec in aoi_res:
+        gran_lat, gran_lon, lat, lon, dummy, dummy = site_rec
+        grid_coord = ''
+        wthr_fnames = {}
+        nexist = 0
+        for metric in METRIC_LIST:
+            wthr_fname = metric + '_' + grid_coord + '.txt'
+            wthr_fnames[metric] = join(out_dir, wthr_fname)
+            if exists(wthr_fnames[metric]):
+                # print('File ' + wthr_fname + ' already exists - will skip')
+                nexist += 1
 
-                wthr_fnames = {}
-                nexist = 0
-                for metric in METRIC_LIST:
-                    wthr_fname = metric + '_' + grid_coord + '.txt'
-                    wthr_fnames[metric] = join(out_dir, wthr_fname)
-                    if exists(wthr_fnames[metric]):
-                        # print('File ' + wthr_fname + ' already exists - will skip')
-                        nexist += 1
+        # if both files exist then skip
+        # =============================
+        if nexist == 2:
+            nskipped += 1
+            continue
 
-                # if both files exist then skip
-                # =============================
-                if nexist == 2:
-                    nskipped += 1
-                    continue
+        # weather set lat/lons
+        # ====================
+        fut_lat_indx, fut_lon_indx, hist_lat_indx, hist_lon_indx = 4*[0]
+        lat_wthr = climgen.fut_wthr_set_defn['latitudes'][fut_lat_indx]
+        lon_wthr = climgen.fut_wthr_set_defn['longitudes'][fut_lon_indx]
 
-                # weather set lat/lons
-                # ====================
-                lat_wthr = climgen.fut_wthr_set_defn['latitudes'][fut_lat_indx]
-                lon_wthr = climgen.fut_wthr_set_defn['longitudes'][fut_lon_indx]
+        # Get future and historic weather data
+        # ====================================
+        pettmp_hist = fetch_WrldClim_data(form.lgr, lat, lon, climgen, hist_wthr_dsets,
+                                          hist_lat_indx, hist_lon_indx, hist_flag=True)
+        if pettmp_hist is None:
+            pettmp_fut = None
+        else:
+            pettmp_fut = fetch_WrldClim_data(form.lgr, lat, lon, climgen, fut_wthr_dsets,
+                                             fut_lat_indx, fut_lon_indx)
+        if pettmp_fut is None or pettmp_hist is None:
+            nnodata += 1
+            continue
+        else:
+            pettmp_sim = join_hist_fut_to_sim_wthr(climgen, pettmp_hist, pettmp_fut)
 
-                # Get future and historic weather data
-                # ====================================
-                pettmp_hist = fetch_WrldClim_data(form.lgr, lat, lon, climgen, hist_wthr_dsets,
-                                                  hist_lat_indx, hist_lon_indx, hist_flag=True)
-                if pettmp_hist is None:
-                    pettmp_fut = None
-                else:
-                    pettmp_fut = fetch_WrldClim_data(form.lgr, lat, lon, climgen, fut_wthr_dsets,
-                                                     fut_lat_indx, fut_lon_indx)
-                if pettmp_fut is None or pettmp_hist is None:
-                    nnodata += 1
-                    continue
-                else:
-                    pettmp_sim = join_hist_fut_to_sim_wthr(climgen, pettmp_hist, pettmp_fut)
-
-                # create weather
-                # ==============
-                # site_obj = MakeSiteFiles(form, climgen)
-                _make_rthc_wthr_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen,
-                                                    lat_wthr, lon_wthr, pettmp_hist, pettmp_sim)
-                ncmpltd += 1
-                if ncmpltd >= max_cells:
-                    break
+        # create weather
+        # ==============
+        # site_obj = MakeSiteFiles(form, climgen)
+        _make_rthc_wthr_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen,
+                                            lat_wthr, lon_wthr, pettmp_hist, pettmp_sim)
+        ncmpltd += 1
+        if ncmpltd >= max_cells:
+            break
 
     dset.close()
 
@@ -123,7 +107,44 @@ def _generate_rothc_weather(form, climgen, num_band, out_dir, max_cells):
 
     return
 
-def _make_rthc_wthr_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr, pettmp_hist, pettmp_sim):
+def _fetch_grid_cells_from_socnc(org_soil_dset, bbox):
+    """
+    fetch grid cells from socNC file for given bounding box
+    """
+    lon_ll, lat_ll, lon_ur, lat_ur = bbox
+
+    # check each value, discarding Nans - total size of file is 618 x 1440 = 889,920 cells
+    # ====================================================================================
+    soc_dset = Dataset(NC_FROM_TIF_FN)
+    latvar = soc_dset.variables['lat']
+    lonvar = soc_dset.variables['lon']
+
+    soc_dset = None
+
+    last_time = time()
+
+    nmasked, noutbnds, nnodata, ncmpltd, nskipped = 4 * [0]
+    aoi_res = []
+    for lat_indx, lat_ma in enumerate(latvar):
+        for lon_indx, lon_ma in enumerate(lonvar):
+            lat = lat_ma.item()
+            lon = lon_ma.item()
+            last_time = update_wthr_rothc_progress(last_time, nmasked, noutbnds, nnodata, ncmpltd, nskipped)
+            soil_carb = soc_dset.variables['Band1'][lat_indx][lon_indx]
+            if is_masked(soil_carb):
+                val = soil_carb.item()
+                nmasked += 1
+            else:
+                continue
+
+    # setup output files
+    # ==================
+    grid_coord = '{0:0=5g}_{1:0=5g}'.format(lat_indx, lon_indx)
+
+    return aoi_res
+
+def _make_rthc_wthr_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen,
+                                                                        lat_wthr, lon_wthr, pettmp_hist, pettmp_sim):
     """
     write a RothC weather dataset
     """
@@ -220,7 +241,7 @@ def generate_banded_rothc_wthr(form):
             mess += ' with latitude extent of min: {}\tmax: {}'.format(round(lat_ll_new, 3), round(lat_ur, 3))
             QApplication.processEvents()
 
-            report = _generate_rothc_weather(form, climgen, num_band, out_dir, max_cells)   # does actual work
+            report = _generate_rothc_weather(form, climgen, org_soil_dset, num_band, out_dir, max_cells)   # does actual work
             band_reports.append(report)
 
         # check to see if the last band is completed
