@@ -534,6 +534,20 @@ def update_progress(last_time, ncompleted, nskipped, ntotal_grow, ngrowing, nno_
 
     return last_time
 
+def update_soc_rothc_progress(last_time, nmasked, ncompleted):
+    """
+    Update progress bar
+    """
+    new_time = time()
+    if new_time - last_time > 5:
+        mess = '\rCells:  Completed: {:=6d} '.format(ncompleted, ',')
+        mess += '  Masked: ' + format(nmasked, ',')
+        stdout.flush()
+        stdout.write(mess)
+        last_time = new_time
+
+    return last_time
+
 def update_wthr_rothc_progress(last_time, nmasked, noutbnds, nnodata, ncompleted, nskipped):
     """
     Update progress bar

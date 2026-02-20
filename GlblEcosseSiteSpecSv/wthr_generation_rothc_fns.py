@@ -21,20 +21,20 @@ from PyQt5.QtWidgets import QApplication
 
 from getClimGenNC import ClimGenNC
 from getClimGenFns import (fetch_WrldClim_data, open_wthr_NC_sets, get_wthr_nc_coords, join_hist_fut_to_sim_wthr)
-from make_site_spec_files_classes import MakeSiteFiles
-from glbl_ecsse_low_level_fns import update_wthr_rothc_progress
+from glbl_ecsse_low_level_fns import update_wthr_rothc_progress, update_soc_rothc_progress
 
 from thornthwaite import thornthwaite
 
 ERROR_STR = '*** Error *** '
 WARNING_STR = '*** Warning *** '
 
+GRANULARITY = 120
 NC_FROM_TIF_FN ='E:\\Saeed\\GSOCmap_0.25.nc'
 METRIC_LIST = list(['precip', 'tas'])
 METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
 
-def _generate_rothc_weather(form, climgen, org_soil_dset, num_band, bbox, out_dir, max_cells):
+def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_dir, max_cells):
     """
     C
     """
@@ -44,17 +44,19 @@ def _generate_rothc_weather(form, climgen, org_soil_dset, num_band, bbox, out_di
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
 
     last_time = time()
-    aoi_res = _fetch_grid_cells_from_socnc(org_soil_dset, bbox)
+    aoi_res = _fetch_grid_cells_from_socnc(org_soil_defn, bbox)
     lon_ll_aoi, lat_ll_aoi, lon_ur_aoi, lat_ur_aoi = bbox
 
-    num_meta_cells = len(aoi_res)
+    n_soc_cells = len(aoi_res)
     mess = 'Band aoi LL lon/lat: {} {}\t'.format(lon_ll_aoi, lat_ll_aoi)
-    print(mess+ 'UR lon/lat: {} {}\t# meta cells: {}'.format(lon_ur_aoi, lat_ur_aoi, num_meta_cells))
+    print(mess+ 'UR lon/lat: {} {}\t# cells with data: {}'.format(lon_ur_aoi, lat_ur_aoi, n_soc_cells))
     QApplication.processEvents()
+    if n_soc_cells == 0:
+        return
 
-    nskipped, nnodata, ncmpltd = 3*[0]
+    nskipped, nnodata, ncmpltd, noutbnds, nignore = 5*[0]
     for site_rec in aoi_res:
-        gran_lat, gran_lon, lat, lon, dummy, dummy = site_rec
+        gran_lat, gran_lon, lat, lat_indx, lon, lon_indx, grid_coord, soil_carb = site_rec
         grid_coord = ''
         wthr_fnames = {}
         nexist = 0
@@ -73,9 +75,19 @@ def _generate_rothc_weather(form, climgen, org_soil_dset, num_band, bbox, out_di
 
         # weather set lat/lons
         # ====================
-        fut_lat_indx, fut_lon_indx, hist_lat_indx, hist_lon_indx = 4*[0]
+        hist_lat_indx, hist_lon_indx = get_wthr_nc_coords(climgen.hist_wthr_set_defn, lat, lon)
+        fut_lat_indx, fut_lon_indx = get_wthr_nc_coords(climgen.fut_wthr_set_defn, lat, lon)
+        if hist_lat_indx < 0 or fut_lat_indx < 0:
+            noutbnds += 1
+            continue
+
         lat_wthr = climgen.fut_wthr_set_defn['latitudes'][fut_lat_indx]
         lon_wthr = climgen.fut_wthr_set_defn['longitudes'][fut_lon_indx]
+
+        # ignaore for now
+        # ===============
+        nignore += 1
+        continue
 
         # Get future and historic weather data
         # ====================================
@@ -101,13 +113,12 @@ def _generate_rothc_weather(form, climgen, org_soil_dset, num_band, bbox, out_di
         if ncmpltd >= max_cells:
             break
 
-    dset.close()
-
     print('Finished RothC weather generation - total number of sets written: {}'.format(ncmpltd))
-
+    print('\tnskipped: {}\tnnodata: {}\tncmpltd: {}\tnoutbnds: {}\tnignore: {}\n'
+                                                                .format(nskipped, nnodata, ncmpltd, noutbnds, nignore))
     return
 
-def _fetch_grid_cells_from_socnc(org_soil_dset, bbox):
+def _fetch_grid_cells_from_socnc(org_soil_defn, bbox):
     """
     fetch grid cells from socNC file for given bounding box
     """
@@ -115,33 +126,35 @@ def _fetch_grid_cells_from_socnc(org_soil_dset, bbox):
 
     # check each value, discarding Nans - total size of file is 618 x 1440 = 889,920 cells
     # ====================================================================================
-    soc_dset = Dataset(NC_FROM_TIF_FN)
-    latvar = soc_dset.variables['lat']
-    lonvar = soc_dset.variables['lon']
-
-    soc_dset = None
+    soc_dset = Dataset(org_soil_defn['ds_soil_org'] )
+    lat_ll_indx, lon_ll_indx = get_wthr_nc_coords(org_soil_defn, lat_ll, lon_ll)
+    lat_ur_indx, lon_ur_indx = get_wthr_nc_coords(org_soil_defn, lat_ur, lon_ur)
 
     last_time = time()
 
-    nmasked, noutbnds, nnodata, ncmpltd, nskipped = 4 * [0]
-    aoi_res = []
-    for lat_indx, lat_ma in enumerate(latvar):
-        for lon_indx, lon_ma in enumerate(lonvar):
-            lat = lat_ma.item()
-            lon = lon_ma.item()
-            last_time = update_wthr_rothc_progress(last_time, nmasked, noutbnds, nnodata, ncmpltd, nskipped)
+    nmasked, ncmpltd = 2 * [0]
+    site_recs = []
+    for lat_indx in range(lat_ll_indx, lat_ur_indx):
+        lat = org_soil_defn['latitudes'][lat_indx]
+
+        for lon_indx in range(lon_ll_indx, lon_ur_indx):
+            lon = org_soil_defn['longitudes'][lon_indx]
+            last_time = update_soc_rothc_progress(last_time, nmasked, ncmpltd)
+
             soil_carb = soc_dset.variables['Band1'][lat_indx][lon_indx]
+
+            # discard masked grid cells
             if is_masked(soil_carb):
-                val = soil_carb.item()
+                val = soil_carb.item()  # val should be zero
                 nmasked += 1
             else:
-                continue
+                gran_lat = round((90.0 - lat) * GRANULARITY)
+                gran_lon = round((180.0 + lon) * GRANULARITY)
+                grid_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
+                site_rec = ([gran_lat, gran_lon, lat, lat_indx, lon, lon_indx, grid_coord, soil_carb])
+                site_recs.append(site_rec)
 
-    # setup output files
-    # ==================
-    grid_coord = '{0:0=5g}_{1:0=5g}'.format(lat_indx, lon_indx)
-
-    return aoi_res
+    return site_recs
 
 def _make_rthc_wthr_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen,
                                                                         lat_wthr, lon_wthr, pettmp_hist, pettmp_sim):
@@ -173,9 +186,9 @@ def generate_banded_rothc_wthr(form):
     called from GUI; based on generate_banded_sims from HoliSoilsSpGlEc project
     GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
     """
-    LAT_STEP = 1.0
+    LAT_STEP = 5.0
     START_AT_BAND = 0
-    END_AT_BAND = 20
+    END_AT_BAND = 5
 
     out_dir = 'E:\\Saeed\\outputs'
     if not exists(out_dir):
@@ -185,7 +198,7 @@ def generate_banded_rothc_wthr(form):
 
     max_cells = int(form.w_max_cells.text())
 
-    org_soil_dset = read_soil_organic_detail(form)
+    org_soil_defn = read_soil_organic_detail(form)
 
     # bounding box
     # ============
@@ -236,12 +249,13 @@ def generate_banded_rothc_wthr(form):
             print('Exiting from processing after {} bands'.format(num_band - 1))
             break
         else:
-            form.bbox = list([lon_ll_aoi, lat_ll_new, lon_ur_aoi, lat_ur])
+            bbox = list([lon_ll_aoi, lat_ll_new, lon_ur_aoi, lat_ur])
+            form.bbox = bbox
             mess = '\nProcessing band {} of {}'.format(num_band, nbands_to_prcss)
             mess += ' with latitude extent of min: {}\tmax: {}'.format(round(lat_ll_new, 3), round(lat_ur, 3))
             QApplication.processEvents()
 
-            report = _generate_rothc_weather(form, climgen, org_soil_dset, num_band, out_dir, max_cells)   # does actual work
+            report = _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_dir, max_cells)   # does actual work
             band_reports.append(report)
 
         # check to see if the last band is completed
@@ -257,9 +271,6 @@ def generate_banded_rothc_wthr(form):
     form.band_reports = band_reports
     for report in band_reports:
         form.lgr.info(report)
-
-    for ichan in range(len(form.fstudy)):
-        form.fstudy[ichan].close()
 
     return
 
@@ -331,7 +342,7 @@ def _fetch_soil_org_nc_parms(nc_fname):
             'resol_lon': resol_lon, 'lon_frst': lon_frst, 'lon_last': lon_last, 'lon_ll': lon_ll, 'lon_ur': lon_ur,
             'longitudes': lons, 'latitudes': lats}
 
-    print('{}\tresolution: {} degrees'.format(soil_org_rsrc, resol_lat))
+    print('Soc NC: {}\tresolution: {} degrees\n'.format(nc_fname, resol_lat))
 
     return soil_org_rsrc
 
