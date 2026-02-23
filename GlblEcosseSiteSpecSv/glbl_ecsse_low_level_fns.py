@@ -548,14 +548,13 @@ def update_soc_rothc_progress(last_time, nmasked, ncompleted):
 
     return last_time
 
-def update_wthr_rothc_progress(last_time, nmasked, noutbnds, nnodata, ncompleted, nskipped):
+def update_wthr_rothc_progress(last_time, noutbnds, nnodata, ncmpltd, nskipped):
     """
     Update progress bar
     """
     new_time = time()
     if new_time - last_time > 5:
-        mess = '\rCells:  Completed: {:=6d} '.format(ncompleted, ',')
-        mess += '  Masked: ' + format(nmasked, ',')
+        mess = '\rCells:  Completed: {:=6d} '.format(ncmpltd, ',')
         mess += '  Out of bounds: {:=6d}'.format(noutbnds, ',')
         mess += '  No climate data: ' + format(nnodata, ',')
         mess += '  Skipped: ' + format(nskipped, ',')
