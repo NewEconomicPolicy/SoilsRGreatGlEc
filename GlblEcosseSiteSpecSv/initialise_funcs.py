@@ -855,20 +855,20 @@ def _write_default_wthr_config_file(config_file):
     bbox_default = [0, 0, 0, 0]
     _default_config = {
         'minGUI': {
+            'allRegionsFlag': False,
             'strt1801Flag': False,
             'bbox': bbox_default,
-            'cultivJsonFname': '',
             'daily_mode': True,
-            "manureFlag": False,
-            "regionIndx": 0,
-            "wthrRsrce": ''
+            'maxCells': 0,
+            'regionIndx': 0,
+            'wthrRsrce': '',
+            'yearFrom': ''
         },
         'cmnGUI': {
             'climScnr': 0,
             'cropIndx': 0,
             'cruStrtYr': 0,
             'cruEndYr': 0,
-            'eqilMode': 9.5,
             'futStrtYr': 0,
             'futEndYr': 0,
             'gridResol': 0

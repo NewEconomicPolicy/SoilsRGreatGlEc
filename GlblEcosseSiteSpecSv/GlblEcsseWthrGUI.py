@@ -345,19 +345,9 @@ class Form(QWidget):
 
     def saveClicked(self):
         """
-        validate user input by checking for spaces and blankness
+        write last GUI selections
         """
-        study = self.w_study.text()
-        if study == '':
-            print('study cannot be blank')
-        else:
-            if study.find(' ') >= 0:
-                print('*** study name must not have spaces ***')
-            else:
-                # write last GUI selections
-                write_wthr_config_file(self)
-                write_study_definition_file(self)
-                build_and_display_studies(self)
+        write_wthr_config_file(self)
 
     def resolutionChanged(self):
         """

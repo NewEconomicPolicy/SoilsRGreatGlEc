@@ -396,16 +396,7 @@ class Form(QWidget):
         grid.addWidget(w_rplc_cnfgs, irow, icol)
         w_rplc_cnfgs.clicked.connect(self.rplctCnfgsClicked)
 
-        icol += 1
-        w_rothc_wthr = QPushButton("RothC wthr")
-        helpText = 'Generate RothC weathrer'
-        w_rothc_wthr.setToolTip(helpText)
-        w_rothc_wthr.setFixedWidth(WDGT_SIZE_100)
-        w_rothc_wthr.setEnabled(True)
-        grid.addWidget(w_rothc_wthr, irow, icol)
-        w_rothc_wthr.clicked.connect(self.gnrtRthCwthrClicked)
-
-        icol += 2
+        icol += 3
         w_test_fert = QPushButton("Test fertiliser")
         helpText = 'check netCDF4 files making up fertiliser inputs'
         w_test_fert.setToolTip(helpText)
