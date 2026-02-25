@@ -17,8 +17,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QLabel, QComboBox, QRadioButton, QButtonGroup, QPushButton, QCheckBox
 
 from shape_funcs import calculate_area, format_bbox
-from initialise_funcs import write_config_file
-from glbl_ecss_cmmn_funcs import write_study_definition_file
+from initialise_funcs import write_config_file, write_wthr_config_file
 
 resolutions = {120:'30"', 30:'2\'', 20:'3\'', 10:'6\'', 6:'10\'', 4:'15\'', 3:'20\'', 2:'30\''}
 reverse_resols = {}
@@ -95,7 +94,7 @@ def _fetch_land_use_types():
 
     return luTypes, lu_type_abbrevs
 
-def commonSection(form, grid, irow):
+def commonSection(form, grid, irow, wthr_only_flag = False):
     """
 
     """
@@ -218,75 +217,77 @@ def commonSection(form, grid, irow):
     # row 13
     # ======
     irow += 1
-    w_cult_file = QPushButton("Cultivation file")
-    helpText = 'Select a JSON file comprising year index, cultivation type, vigour and residues incorporated'
-    w_cult_file.setToolTip(helpText)
-    grid.addWidget(w_cult_file, irow, 0)
-    w_cult_file.clicked.connect(form.fetchCultivJsonFile)
 
-    w_lbl13 = QLabel('')
-    grid.addWidget(w_lbl13, irow, 1, 1, 5)
-    form.w_lbl13 = w_lbl13
+    if not wthr_only_flag:
+        w_cult_file = QPushButton("Cultivation file")
+        helpText = 'Select a JSON file comprising year index, cultivation type, vigour and residues incorporated'
+        w_cult_file.setToolTip(helpText)
+        grid.addWidget(w_cult_file, irow, 0)
+        w_cult_file.clicked.connect(form.fetchCultivJsonFile)
 
-    # for message from check_cultiv_json_fname
-    # =======================================
-    w_lbl14 = QLabel('')
-    grid.addWidget(w_lbl14, irow, 6, 1, 2)
-    form.w_lbl14 = w_lbl14
+        w_lbl13 = QLabel('')
+        grid.addWidget(w_lbl13, irow, 1, 1, 5)
+        form.w_lbl13 = w_lbl13
 
-    # line 15
-    # =======
-    irow += 1
-    w_fert = QRadioButton("Fertiliser")
-    helpText = 'If this option is selected, then file is treated as fertiliser'
-    w_fert.setToolTip(helpText)
-    grid.addWidget(w_fert, irow, 1)
-    form.w_fert  = w_fert
+        # for message from check_cultiv_json_fname
+        # =======================================
+        w_lbl14 = QLabel('')
+        grid.addWidget(w_lbl14, irow, 6, 1, 2)
+        form.w_lbl14 = w_lbl14
 
-    w_manure = QRadioButton("Manure")
-    helpText = 'If this option is selected, then file is treated as manure'
-    w_manure.setToolTip(helpText)
-    grid.addWidget(w_manure, irow, 2)
-    form.w_manure = w_manure
+        # line 15
+        # =======
+        irow += 1
+        w_fert = QRadioButton("Fertiliser")
+        helpText = 'If this option is selected, then file is treated as fertiliser'
+        w_fert.setToolTip(helpText)
+        grid.addWidget(w_fert, irow, 1)
+        form.w_fert  = w_fert
 
-    w_inputs_choice = QButtonGroup()
-    w_inputs_choice.addButton(w_fert)
-    w_inputs_choice.addButton(w_manure)
-    w_manure.setChecked(True)
+        w_manure = QRadioButton("Manure")
+        helpText = 'If this option is selected, then file is treated as manure'
+        w_manure.setToolTip(helpText)
+        grid.addWidget(w_manure, irow, 2)
+        form.w_manure = w_manure
 
-    # assign check values to radio buttons
-    w_inputs_choice.setId(w_manure, 2)
-    w_inputs_choice.setId(w_fert, 1)    
-    form.w_inputs_choice = w_inputs_choice
+        w_inputs_choice = QButtonGroup()
+        w_inputs_choice.addButton(w_fert)
+        w_inputs_choice.addButton(w_manure)
+        w_manure.setChecked(True)
 
-    # row 16
-    # ======
-    irow += 1
-    w_rota_file = QPushButton("Crop rotation file")
-    helpText = 'Select a JSON file comprising crop rotation detail'
-    w_rota_file.setToolTip(helpText)
-    grid.addWidget(w_rota_file, irow, 0)
-    w_rota_file.clicked.connect(form.fetchCropRotaJsonFile)
+        # assign check values to radio buttons
+        w_inputs_choice.setId(w_manure, 2)
+        w_inputs_choice.setId(w_fert, 1)
+        form.w_inputs_choice = w_inputs_choice
 
-    w_lbl16 = QLabel('')
-    grid.addWidget(w_lbl16, irow, 1, 1, 5)
-    form.w_lbl16 = w_lbl16
+        # row 16
+        # ======
+        irow += 1
+        w_rota_file = QPushButton("Crop rotation file")
+        helpText = 'Select a JSON file comprising crop rotation detail'
+        w_rota_file.setToolTip(helpText)
+        grid.addWidget(w_rota_file, irow, 0)
+        w_rota_file.clicked.connect(form.fetchCropRotaJsonFile)
 
-    # line 17
-    # =======
-    w_crop_rota = QCheckBox("Use crop rotation file")
-    helpText = 'If this option is selected, then the crop rotation specified in the NC file will be used'
-    w_crop_rota.setChecked(False)
-    w_crop_rota.setToolTip(helpText)
-    grid.addWidget(w_crop_rota, irow, 4, 1, 2)
-    form.w_crop_rota = w_crop_rota
+        w_lbl16 = QLabel('')
+        grid.addWidget(w_lbl16, irow, 1, 1, 5)
+        form.w_lbl16 = w_lbl16
 
-    # for message from check_crop_rota_json_fname
-    # ===========================================
-    irow += 1
-    w_lbl17 = QLabel('')
-    grid.addWidget(w_lbl17, irow, 1, 1, 3)
-    form.w_lbl17 = w_lbl17
+        # line 17
+        # =======
+        w_crop_rota = QCheckBox("Use crop rotation file")
+        helpText = 'If this option is selected, then the crop rotation specified in the NC file will be used'
+        w_crop_rota.setChecked(False)
+        w_crop_rota.setToolTip(helpText)
+        grid.addWidget(w_crop_rota, irow, 4, 1, 2)
+        form.w_crop_rota = w_crop_rota
+
+        # for message from check_crop_rota_json_fname
+        # ===========================================
+        irow += 1
+        w_lbl17 = QLabel('')
+        grid.addWidget(w_lbl17, irow, 1, 1, 3)
+        form.w_lbl17 = w_lbl17
 
     return irow
 
@@ -323,11 +324,14 @@ def grid_coarseness(form, grid, irow):
 
     return irow
 
-def exit_clicked(form, write_config_flag = True):
+def exit_clicked(form, write_config_flag = True, wthr_only_flag = False):
 
     # write last GUI selections
     if write_config_flag:
-        write_config_file(form)
+        if wthr_only_flag:
+            write_wthr_config_file(form)
+        else:
+            write_config_file(form)
 
     # close various files
     if hasattr(form, 'fobjs'):
