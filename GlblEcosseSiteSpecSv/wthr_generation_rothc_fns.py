@@ -30,7 +30,7 @@ ERROR_STR = '*** Error *** '
 WARNING_STR = '*** Warning *** '
 
 GRANULARITY = 120
-NC_FROM_TIF_FN ='E:\\Saeed\\GSOCmap_0.25.nc'
+NC_FROM_TIF_FN ='GSOCmap_0.25.nc'
 METRIC_LIST = list(['precip', 'tas'])
 METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
@@ -239,9 +239,9 @@ def generate_banded_rothc_wthr(form):
     called from GUI; based on generate_banded_sims from HoliSoilsSpGlEc project
     GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
     """
-    LAT_STEP = 5.0
-    START_AT_BAND = 0
-    END_AT_BAND = 20
+    lat_step = float(form.w_lat_step.text())
+    strt_at_band = int(form.w_strt_band.text())
+    end_at_band = int(form.w_end_band.text())
 
     out_dirs = _make_output_dirs()
 
@@ -250,13 +250,12 @@ def generate_banded_rothc_wthr(form):
 
     # bounding box
     # ============
-    lon_ll_aoi, lon_ur_aoi = 0.0, 20.0
-    lat_ll_aoi, lat_ur_aoi = -53.0, 83.0
-    nbands = int((lat_ur_aoi - lat_ll_aoi) / LAT_STEP) + 1
-    nbands_to_prcss = END_AT_BAND - START_AT_BAND + 1
+    lon_ll_aoi, lat_ll_aoi, lon_ur_aoi, lat_ur_aoi = form.setup['bbox']
+    nbands = int((lat_ur_aoi - lat_ll_aoi) / lat_step) + 1
+    nbands_to_prcss = end_at_band  - strt_at_band  + 1
 
     mess = 'Total # of bands: {}\twill process {} bands\t'.format(nbands, nbands_to_prcss)
-    mess += 'starting and ending at bands {} and {}'.format(START_AT_BAND, END_AT_BAND)
+    mess += 'starting and ending at bands {} and {}'.format(strt_at_band, end_at_band)
     print(mess)
     QApplication.processEvents()
 
@@ -282,18 +281,18 @@ def generate_banded_rothc_wthr(form):
     band_reports = []
     lat_ur = lat_ur_aoi
     for iband in range(nbands):
-        lat_ll_new = lat_ur - LAT_STEP
+        lat_ll_new = lat_ur - lat_step
         num_band = iband + 1
         if lat_ll_new > lat_ur_aoi:
             mess = 'Skipping simulations at band {} since new band latitude floor '.format(num_band)
             print(mess + '{} exceeds AOI upper latitude {}'.format(round(lat_ll_new,6), round(lat_ur_aoi, 3)))
 
-        elif num_band < START_AT_BAND:
+        elif num_band < strt_at_band:
             mess = 'Skipping out of area band {} of {}'.format(num_band, nbands)
             mess += ' with latitude extent of min: {}\tmax: {}'.format(round(lat_ll_new, 3), round(lat_ur, 3))
             print(mess)
 
-        elif num_band > END_AT_BAND:
+        elif num_band > end_at_band:
             print('Exiting from processing after {} bands'.format(num_band - 1))
             break
         else:
@@ -406,13 +405,15 @@ def read_soil_organic_detail(form):
     """
     GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
     """
-    if not lexists(NC_FROM_TIF_FN):
-        print(ERROR_STR + 'Soil organic carbon file ' + NC_FROM_TIF_FN + ' must exist, cannot continue')
+    prj_dir = form.w_prj_dir.text()
+    soc_fn = join(prj_dir, NC_FROM_TIF_FN)
+    if not lexists(soc_fn):
+        print(ERROR_STR + 'Soil organic carbon file ' + soc_fn + ' must exist, cannot continue')
         return
 
-    soil_org_set = _fetch_soil_org_nc_parms(NC_FROM_TIF_FN)
-    soil_org_set['base_dir'] = split(NC_FROM_TIF_FN)[0]
-    soil_org_set['ds_soil_org'] = NC_FROM_TIF_FN
+    soil_org_set = _fetch_soil_org_nc_parms(soc_fn)
+    soil_org_set['base_dir'] = prj_dir
+    soil_org_set['ds_soil_org'] = soc_fn
 
     return soil_org_set
 

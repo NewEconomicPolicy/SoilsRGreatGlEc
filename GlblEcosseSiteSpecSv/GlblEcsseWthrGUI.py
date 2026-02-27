@@ -11,20 +11,19 @@ __version__ = '0.0.1'
 __author__ = 's03mm5'
 
 import sys
-from os.path import join, isdir
+from os.path import join, isdir, normpath
 from os import listdir
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QLabel, QWidget, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout, QLineEdit,
-                                                            QComboBox, QRadioButton,  QPushButton, QCheckBox)
+                                                    QComboBox, QRadioButton,  QPushButton, QCheckBox, QFileDialog)
 
-from initialise_funcs import (read_wthr_config_file, initiation, write_wthr_config_file, build_and_display_studies)
+from initialise_funcs import (read_wthr_config_file, initiation, write_wthr_config_file)
 from commonCmpntsGUI import exit_clicked, commonSection, grid_coarseness, calculate_grid_cell
-from glbl_ecss_cmmn_funcs import write_study_definition_file
 from shape_funcs import format_bbox, calculate_area
 
-from wthr_generation_fns import generate_all_weather, write_avemet_files
+from wthr_generation_fns import generate_all_weather
 from wthr_generation_rothc_fns import generate_banded_rothc_wthr
 
 WARNING_STR = '*** Warning *** '
@@ -32,6 +31,7 @@ WARNING_STR = '*** Warning *** '
 WDGT_SIZE_80 = 80
 WDGT_SIZE_100 = 100
 WDGT_SIZE_120 = 120
+WDGT_SIZE_140 = 140
 WDGT_SIZE_180 = 180
 WTHR_FLAG = True
 
@@ -71,6 +71,54 @@ class Form(QWidget):
         grid.setSpacing(10)	# set spacing between widgets
         irow = 0
 
+        # directory must contain map of soil organic carbon GSOCmap_0.25.nc
+        # =================================================================
+        w_prj_pb = QPushButton("Project dir")
+        helpText = 'Directory to which weather files will written and must also\n'
+        helpText += 'contain map of soil organic carbon GSOCmap_0.25.nc'
+        w_prj_pb.setToolTip(helpText)
+        grid.addWidget(w_prj_pb, irow, 0)
+        w_prj_pb.clicked.connect(self.fetchPrjDir)
+
+        w_prj_dir = QLabel('')
+        grid.addWidget(w_prj_dir, irow, 1, 1, 5)
+        self.w_prj_dir = w_prj_dir
+
+        # define spatial extent of the output, typically:
+        #   lat_step = 5.0; start_at_band = 0; end_at_band = 20
+        # =====================================================
+        irow += 1
+        lbl02 = QLabel('Latitude step:')
+        lbl02.setAlignment(Qt.AlignRight)
+        grid.addWidget(lbl02, irow, 0)
+
+        w_lat_step = QLineEdit()
+        w_lat_step.setFixedWidth(WDGT_SIZE_80)
+        grid.addWidget(w_lat_step, irow, 1)
+        self.w_lat_step = w_lat_step
+
+        lbl02 = QLabel('Start at band:')
+        lbl02.setAlignment(Qt.AlignRight)
+        grid.addWidget(lbl02, irow, 2)
+
+        w_strt_band = QLineEdit()
+        w_strt_band.setFixedWidth(WDGT_SIZE_80)
+        grid.addWidget(w_strt_band, irow, 3)
+        self.w_strt_band = w_strt_band
+
+        lbl02 = QLabel('End at band:')
+        lbl02.setAlignment(Qt.AlignRight)
+        grid.addWidget(lbl02, irow, 4)
+
+        w_end_band = QLineEdit()
+        w_end_band.setFixedWidth(WDGT_SIZE_80)
+        grid.addWidget(w_end_band, irow, 5)
+        self.w_end_band = w_end_band
+
+        # ======= spacer ========
+        irow += 1
+        grid.addWidget(QLabel(''), irow, 2)
+
         # line 1
         # ======
         irow += 1
@@ -81,7 +129,8 @@ class Form(QWidget):
         w_combo00a= QComboBox()
         for region in self.regions:
             w_combo00a.addItem(region)
-        w_combo00a.setFixedWidth(WDGT_SIZE_180)
+        w_combo00a.setFixedWidth(WDGT_SIZE_140)
+        w_combo00a.setEnabled(False)
         grid.addWidget(w_combo00a, irow, 1)
         w_combo00a.currentIndexChanged[str].connect(self.changeRegion)
         self.w_combo00a = w_combo00a
@@ -135,10 +184,9 @@ class Form(QWidget):
         # ======
         irow += 1
         lbl03a = QLabel('Study bounding box:')
-        # lbl03a.setAlignment(Qt.AlignRight)
         grid.addWidget(lbl03a, irow, 0)
         self.lbl03 = QLabel()
-        grid.addWidget(self.lbl03, irow, 1, 1, 4)
+        grid.addWidget(self.lbl03, irow, 1, 1, 5)
 
         w_equimode = QLineEdit()       # equilibrium mode
         self.w_equimode = w_equimode
@@ -282,7 +330,7 @@ class Form(QWidget):
         self.setLayout(hbox)        # the horizontal box fits inside the window
 
         self.setGeometry(300, 300, 690, 250)   # posx, posy, width, height
-        self.setWindowTitle('Global Ecosse Site Specific - generate sets of ECOSSE input files based on HWSD grid')
+        self.setWindowTitle('Global Ecosse - generate RothC weather input files')
 
         # reads and set values from last run
         # ==================================
@@ -293,7 +341,15 @@ class Form(QWidget):
         self.w_ur_lat.textChanged[str].connect(self.bboxTextChanged)
         self.w_ur_lon.textChanged[str].connect(self.bboxTextChanged)
 
-        self.changeRegion()  # populates lat/long boxes
+        # self.changeRegion()  # populates lat/long boxes
+
+    def fetchPrjDir(self):
+        #
+        fname = self.w_prj_dir.text()
+        fname = QFileDialog.getExistingDirectory(self, 'Select directory', fname)
+        if fname != '':
+            fname = normpath(fname)
+            self.w_prj_dir.setText(fname)
 
     def gnrtRthCwthrClicked(self):
         """

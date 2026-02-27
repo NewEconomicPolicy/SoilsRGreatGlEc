@@ -51,6 +51,8 @@ MIN_GUI_LIST = ['strt1801Flag', 'bbox', 'regionIndx', 'yearFrom', 'wthrRsrce', '
 
 CMN_GUI_LIST = ['cruStrtYr', 'cruEndYr', 'climScnr', 'futStrtYr', 'futEndYr', 'cropIndx', 'gridResol', 'eqilMode']
 
+ROTHC_KEYS = ['prjDir', 'latStep',  'startBand', 'endBand']
+
 sleepTime = 5
 
 def initiation(form):
@@ -483,7 +485,7 @@ def read_config_file(form):
                 sleep(sleepTime)
                 exit(0)
 
-    ave_weather = config[grp]['strt1801Flag']
+    strt_1801_flag = config[grp]['strt1801Flag']
     auto_run_ec = config[grp]['autoRunEcFlag']
     form.setup['bbox'] = config[grp]['bbox']
     daily_mode = config[grp]['daily_mode']
@@ -592,7 +594,7 @@ def read_config_file(form):
     else:
         form.w_auto_run_ec.setCheckState(0)
 
-    if ave_weather:
+    if strt_1801_flag:
         form.w_strt_1801.setCheckState(2)
     else:
         form.w_strt_1801.setCheckState(0)
@@ -759,17 +761,36 @@ def read_wthr_config_file(form):
             print(ERROR_STR + str(err) + ' in config file:\t' + config_file)
             return False
     else:
-        config = _write_default_wthr_config_file(config_file)
+        config = _write_dflt_wthr_cnfg_file(config_file)
         print('Wrote configuration file ' + config_file)
 
     grp = 'minGUI'
-    for key in MIN_GUI_LIST:
+    for key in MIN_GUI_LIST +  ROTHC_KEYS:
         if key not in config[grp]:
-            print(ERROR_STR + 'attribute {} required for group {} in config file {}'.format(key, grp, config_file))
-            sleep(sleepTime)
-            exit(0)
+            if key in ROTHC_KEYS:
+                if key == 'prjDir':
+                    config[grp][key] = ''
+                else:
+                    config[grp][key] = 0
+            else:
+                mess = ERROR_STR + 'attribute {} required for group {} '.format(key, grp)
+                print(mess + 'in config file:\n\t{}'.format(config_file))
+                sleep(sleepTime)
+                exit(0)
 
-    ave_weather = config[grp]['strt1801Flag']
+    prj_dir = config[grp]['prjDir']
+    form.w_prj_dir.setText(prj_dir)
+
+    lat_step = config[grp]['latStep']
+    form.w_lat_step.setText(str(lat_step))
+
+    strt_band = config[grp]['startBand']
+    form.w_strt_band.setText(str(strt_band))
+
+    end_band = config[grp]['endBand']
+    form.w_end_band.setText(str(end_band))
+
+    strt_1801_flag = config[grp]['strt1801Flag']
     form.setup['bbox'] = config[grp]['bbox']
 
     max_cells = config[grp]['maxCells']
@@ -840,14 +861,14 @@ def read_wthr_config_file(form):
     else:
         form.w_all_regions.setCheckState(0)
 
-    if ave_weather:
+    if strt_1801_flag:
         form.w_strt_1801.setCheckState(2)
     else:
         form.w_strt_1801.setCheckState(0)
 
     return True
 
-def _write_default_wthr_config_file(config_file):
+def _write_dflt_wthr_cnfg_file(config_file):
     """
     ll_lon,    ll_lat  ur_lon,ur_lat
     stanza if config_file needs to be created
@@ -858,9 +879,13 @@ def _write_default_wthr_config_file(config_file):
             'allRegionsFlag': False,
             'strt1801Flag': False,
             'bbox': bbox_default,
+            'latStep': 0,
+            'startBand': 0,
+            'endBand': 0,
             'daily_mode': True,
             'maxCells': 0,
             'regionIndx': 0,
+            'prjDir': '',
             'wthrRsrce': '',
             'yearFrom': ''
         },
@@ -903,8 +928,6 @@ def write_wthr_config_file(form):
         ur_lat = 0.0
     form.setup['bbox'] = list([ll_lon, ll_lat, ur_lon, ur_lat])
 
-    # TODO:
-    # print('Weather choice Id: {}'.format(form.w_weather_choice.checkedId()))
     config = {
         'cmnGUI': {
             'cruStrtYr': form.w_combo09s.currentIndex(),
@@ -918,10 +941,14 @@ def write_wthr_config_file(form):
             'allRegionsFlag': form.w_all_regions.isChecked(),
             'strt1801Flag': form.w_strt_1801.isChecked(),
             'autoRunEcFlag': form.w_auto_run_ec.isChecked(),
+            'prjDir': form.w_prj_dir.text(),
             'bbox': form.setup['bbox'],
             'maxCells': form.w_max_cells.text(),
+            'latStep': form.w_lat_step.text(),
+            'startBand': form.w_strt_band.text(),
+            'endBand': form.w_end_band.text(),
             'yearFrom': form.w_yr_from.text(),
-             'regionIndx': form.w_combo00a.currentIndex(),
+            'regionIndx': form.w_combo00a.currentIndex(),
             'wthrRsrce': form.w_combo10w.currentText()
         }
     }
