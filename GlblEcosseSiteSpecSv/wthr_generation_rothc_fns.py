@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import QApplication
 from getClimGenNC import ClimGenNC
 from getClimGenFns import (fetch_WrldClim_data, fetch_WrldClim_NC_data, associate_climate,
                            open_wthr_NC_sets, get_wthr_nc_coords, join_hist_fut_to_sim_wthr)
-from glbl_ecsse_low_level_fns import update_wthr_rothc_progress, update_soc_rothc_progress
+from glbl_ecsse_low_level_fns import update_wthr_rothc_progress, update_soc_rothc_progress, set_region_study
 
 from thornthwaite import thornthwaite
 
@@ -239,7 +239,7 @@ def generate_banded_rothc_wthr(form):
     called from GUI; based on generate_banded_sims from HoliSoilsSpGlEc project
     GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
     """
-    lat_step = float(form.w_lat_step.text())
+    lat_step = max(float(form.w_lat_step.text()), 0.5)
     strt_at_band = int(form.w_strt_band.text())
     end_at_band = int(form.w_end_band.text())
 
@@ -274,6 +274,10 @@ def generate_banded_rothc_wthr(form):
 
     this_gcm = form.w_combo10w.currentText()
     scnr =  form.w_combo10.currentText()
+
+    # define study
+    # ============
+    set_region_study(form)
 
     region, crop_name = 2 * [None]
     climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)

@@ -46,9 +46,14 @@ def check_cell_within_csv(hwsd_mu_globals, lat, lon):
     return inside
 
 def set_region_study(form):
-
-    study = form.w_study.text()
-    study = study.replace(' ', '_')
+    """
+    C
+    """
+    if hasattr(form, 'w_study'):
+        study = form.w_study.text()
+        study = study.replace(' ', '_')
+    else:
+        study = 'dummy'
 
     region = form.w_combo00a.currentText()
     region_indx = form.w_combo00a.currentIndex()
