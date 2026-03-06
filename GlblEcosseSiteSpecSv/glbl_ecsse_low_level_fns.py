@@ -25,6 +25,7 @@ from copy import copy
 from numpy.ma.core import MaskedConstant, MaskError
 from numpy import int32
 from locale import LC_ALL, setlocale, format_string
+from PyQt5.QtWidgets import QApplication
 
 from make_site_spec_files_classes import FertiliserApplication
 
@@ -548,12 +549,16 @@ def update_soc_rothc_progress(last_time, nmasked, ncompleted):
 
     return last_time
 
-def update_wthr_rothc_progress(last_time, noutbnds, nnodata, ncmpltd, nskipped):
+def update_wthr_rothc_progress(last_time, noutbnds, nnodata, ncmpltd, nskipped, w_abandon):
     """
     Update progress bar
     """
     new_time = time()
+    cancel_flag = False
     if new_time - last_time > 5:
+        QApplication.processEvents()
+        if w_abandon.isChecked():
+            cancel_flag = True
         mess = '\rCells:  Completed: {:=6d} '.format(ncmpltd, ',')
         mess += '  Out of bounds: {:=6d}'.format(noutbnds, ',')
         mess += '  No climate data: ' + format(nnodata, ',')
@@ -562,7 +567,7 @@ def update_wthr_rothc_progress(last_time, noutbnds, nnodata, ncmpltd, nskipped):
         stdout.write(mess)
         last_time = new_time
 
-    return last_time
+    return last_time, cancel_flag
 
 def update_wthr_progress(last_time, ncompleted, nskipped, ntotal_grow, ngrowing, nno_grow, region):
     """

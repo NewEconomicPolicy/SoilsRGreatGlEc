@@ -24,7 +24,7 @@ from commonCmpntsGUI import exit_clicked, commonSection, grid_coarseness, calcul
 from shape_funcs import format_bbox, calculate_area
 
 from wthr_generation_fns import generate_all_weather
-from wthr_generation_rothc_fns import generate_banded_rothc_wthr
+from wthr_generation_rothc_fns import generate_banded_rothc_wthr, check_soc_file
 
 WARNING_STR = '*** Warning *** '
 
@@ -281,12 +281,12 @@ class Form(QWidget):
         w_save.clicked.connect(self.saveClicked)
 
         icol += 1
-        w_spec = QPushButton("Cancel")
+        w_cancel = QPushButton("Cancel")
         helpText = 'Leaves GUI without saving configuration and study definition files'
-        w_spec.setToolTip(helpText)
-        w_spec.setFixedWidth(WDGT_SIZE_100)
-        grid.addWidget(w_spec, irow, icol)
-        w_spec.clicked.connect(self.cancelClicked)
+        w_cancel.setToolTip(helpText)
+        w_cancel.setFixedWidth(WDGT_SIZE_100)
+        grid.addWidget(w_cancel, irow, icol)
+        w_cancel.clicked.connect(self.cancelClicked)
 
         icol += 1
         w_exit = QPushButton("Exit", self)
@@ -306,8 +306,17 @@ class Form(QWidget):
         w_wthr_only.clicked.connect(self.gnrtWthrClicked)
         self.w_wthr_only = w_wthr_only
 
-        icol += 3
-        w_rothc_wthr = QPushButton("RothC wthr")
+        icol += 2
+        w_chck_soc = QPushButton('Check soc')
+        helpText = 'Check soc file'
+        w_chck_soc.setToolTip(helpText)
+        w_chck_soc.setFixedWidth(WDGT_SIZE_100)
+        w_chck_soc.setEnabled(True)
+        grid.addWidget(w_chck_soc, irow, icol)
+        w_chck_soc.clicked.connect(self.chckSocClicked)
+
+        icol += 1
+        w_rothc_wthr = QPushButton('RothC wthr')
         helpText = 'Generate RothC weathrer'
         w_rothc_wthr.setToolTip(helpText)
         w_rothc_wthr.setFixedWidth(WDGT_SIZE_100)
@@ -315,8 +324,16 @@ class Form(QWidget):
         grid.addWidget(w_rothc_wthr, irow, icol)
         w_rothc_wthr.clicked.connect(self.gnrtRthCwthrClicked)
 
-        icol += 4
-        w_chck_wthr = QPushButton("Check Weather")
+        icol += 1
+        w_abandon = QCheckBox('Abandon')
+        helpText = 'Abandon weather generation'
+        w_abandon.setToolTip(helpText)
+        w_abandon.setFixedWidth(WDGT_SIZE_100)
+        grid.addWidget(w_abandon, irow, icol)
+        self.w_abandon = w_abandon
+
+        icol += 3
+        w_chck_wthr = QPushButton('Check Weather')
         helpText = 'Check weather'
         w_chck_wthr.setToolTip(helpText)
         w_chck_wthr.setFixedWidth(WDGT_SIZE_100)
@@ -350,6 +367,14 @@ class Form(QWidget):
         if fname != '':
             fname = normpath(fname)
             self.w_prj_dir.setText(fname)
+
+    def chckSocClicked(self):
+        """
+        Check soc file
+        """
+        check_soc_file(self)
+
+        return
 
     def gnrtRthCwthrClicked(self):
         """
