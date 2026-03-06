@@ -3,7 +3,7 @@
 # Name:
 # Purpose:     consist of high level functions invoked by main GUI
 # Author:      Mike Martin
-# Created:     11/12/2015
+# Created:     06/03/2026
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
 #
@@ -58,6 +58,16 @@ def _generate_file_names(out_dirs, grid_coord, fut_or_hist):
 
     return wthr_fnames, skip_flag
 
+def check_soc_file(form):
+    """
+    SOC file is lat=618, lon=1440 = 889,920 grid cells  Masked: 652,432     Useful: 227,210
+    """
+    org_soil_defn = read_soil_organic_detail(form)
+    bbox = org_soil_defn['lon_ll'], org_soil_defn['lat_ll'], org_soil_defn['lon_ur'], org_soil_defn['lat_ur']
+    aoi_res = _fetch_grid_cells_from_socnc(org_soil_defn, bbox)
+
+    return
+
 def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_dirs, max_cells):
     """
     C
@@ -80,9 +90,15 @@ def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_di
     # =========
     nskipped, nnodata, ncmpltd, noutbnds = 4*[0]
     for site_rec in aoi_res:
-        update_wthr_rothc_progress(last_time, noutbnds, nnodata, ncmpltd, nskipped)
+        last_time, cancel_flag = update_wthr_rothc_progress(last_time,
+                                                             noutbnds, nnodata, ncmpltd, nskipped, form.w_abandon)
+        if cancel_flag:
+            print(WARNING_STR + '\nCancelling run')
+            break
+
         gran_lat, gran_lon, lat, lat_indx, lon, lon_indx, grid_coord, soil_carb = site_rec
-        grid_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
+        # grid_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
+        grid_coord = '{0:0=4g}_{1:0=4g}'.format(lon_indx, lat_indx)
 
         wthr_fut_fns, fut_skip_flag = _generate_file_names(out_dirs, grid_coord, 'fut')
         wthr_hist_fns, hist_skip_flag = _generate_file_names(out_dirs, grid_coord, 'hist')
@@ -213,7 +229,7 @@ def _fetch_hist_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wt
     location_rec += '] [Lati= ' + str(round(lat, 3)) + ', ' + str(round(lat_wthr))
     location_rec +=  '] [Grid X,Y= ' + str(lon_indx) + ', ' + str(lat_indx) + ']'
     box_rec = '[Boxes=   31143] [Years=' + period + '] [Multi=    0.1000] [Missing=-999]'
-    grid_ref_rec = 'Grid-ref=  ' + str(lon_indx) + ', ' + str(lat_indx)
+    grid_ref_rec = 'Grid-ref=' + '{0:' '=4g},{1:' '=4g}'.format(lon_indx, lat_indx)
 
     return (frst_rec, period, location_rec, box_rec, grid_ref_rec)
 
@@ -239,6 +255,7 @@ def generate_banded_rothc_wthr(form):
     called from GUI; based on generate_banded_sims from HoliSoilsSpGlEc project
     GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
     """
+    form.w_abandon.setCheckState(0)
     lat_step = float(form.w_lat_step.text())
     strt_at_band = int(form.w_strt_band.text())
     end_at_band = int(form.w_end_band.text())
@@ -311,8 +328,10 @@ def generate_banded_rothc_wthr(form):
             break
 
         lat_ur = lat_ll_new
+        if form.w_abandon.isChecked():
+            break
 
-    print('Finished processing after {} bands of latitude extents'.format(num_band))
+    print('Finished processing after {} bands of latitude extents'.format(num_band - 1))
     #      ======================================================
     QApplication.processEvents()
     form.band_reports = band_reports
@@ -359,7 +378,7 @@ def _fetch_fut_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wth
     location_rec += '] [Lati= ' + str(round(lat, 3)) + ', ' + str(round(lat_wthr))
     location_rec +=  '] [Grid X,Y= ' + str(lon_indx) + ', ' + str(lat_indx) + ']'
     box_rec = '[Boxes=   31143] [Years=' + period + '] [Multi=    0.1000] [Missing=-999]'
-    grid_ref_rec = 'Grid-ref=  ' + str(lon_indx) + ', ' + str(lat_indx)
+    grid_ref_rec = 'Grid-ref=' + '{0:' '=4g},{1:' '=4g}'.format(lon_indx, lat_indx)
 
     return (frst_rec, period, location_rec, box_rec, grid_ref_rec)
 
