@@ -35,39 +35,6 @@ METRIC_LIST = list(['precip', 'tas'])
 METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
 
-def _generate_file_names(out_dirs, grid_coord, fut_or_hist):
-    """
-     C
-     """
-    skip_flag = False
-    wthr_fnames = {}
-    nexist = 0
-    for metric in METRIC_LIST:
-        wthr_fname = metric + '_' + grid_coord + '.txt'
-        wthr_fnames[metric] = join(out_dirs[fut_or_hist], wthr_fname)
-
-        # potentially skip existing files
-        # ===============================
-        if exists(wthr_fnames[metric]):
-            nexist += 1
-
-    # if both files exist then skip
-    # =============================
-    if nexist == 2:
-        skip_flag = True
-
-    return wthr_fnames, skip_flag
-
-def check_soc_file(form):
-    """
-    SOC file is lat=618, lon=1440 = 889,920 grid cells  Masked: 652,432     Useful: 227,210
-    """
-    org_soil_defn = read_soil_organic_detail(form)
-    bbox = org_soil_defn['lon_ll'], org_soil_defn['lat_ll'], org_soil_defn['lon_ur'], org_soil_defn['lat_ur']
-    aoi_res = _fetch_grid_cells_from_socnc(org_soil_defn, bbox)
-
-    return
-
 def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_dirs, max_cells):
     """
     C
@@ -166,90 +133,6 @@ def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_di
 
     return
 
-def _make_rthc_hist_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr, pettmp_hist):
-    """
-    write a RothC weather dataset
-    """
-    hdr_recs = _fetch_hist_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr)
-    frst_rec, period, location_rec, box_rec, grid_ref_rec = hdr_recs
-
-    for metric in METRIC_LIST:
-        metric_descr = METRIC_DESCRIPS[metric]
-
-        pettmp = _reform_hist_rec(climgen, pettmp_hist[metric])
-        data_recs = _generate_data_recs(pettmp)
-
-        with open(wthr_fnames[metric], 'w') as fobj:
-            fobj.write(frst_rec)
-            fobj.write('\n.' + metric_descr)
-            fobj.write('\nPeriod=' + period + ' Variable=.' + metric)
-            fobj.write('\n' + location_rec)
-            fobj.write('\n' + box_rec)
-            fobj.write('\n' + grid_ref_rec)
-            for data_rec in data_recs:
-                fobj.write('\n' + data_rec)
-            fobj.flush()
-    return
-
-def _fetch_segment(pettmp, strt_yr_data, yr_strt, yr_end):
-    """
-    create strings for header records
-    From the WorldClim database of high spatial resolution global weather and climate data.
-    """
-    indx_strt =  12 * (yr_strt - strt_yr_data)
-    indx_end = 12 * (yr_end - strt_yr_data + 1)
-    segmnt = pettmp[indx_strt:indx_end]
-    nyears = int(len(segmnt)/12)
-
-    return segmnt, nyears
-
-def _reform_hist_rec(climgen, pettmp):
-    """
-    create strings for header records
-    From the WorldClim database of high spatial resolution global weather and climate data.
-    """
-    seg1, nyears = _fetch_segment(pettmp, climgen.hist_start_year, 1961, 2000)
-    seg2, nyears = _fetch_segment(pettmp, climgen.hist_start_year, 1971, 2000)
-    pettmp = seg1 + seg2 + seg2
-    pettmp.reverse()
-
-    return pettmp
-
-def _fetch_hist_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr):
-    """
-    create strings for header records
-    From the WorldClim database of high spatial resolution global weather and climate data.
-    """
-    frst_rec = 'From the WorldClim database of global weather and climate data using historic data'
-
-    # period = str(climgen.hist_start_year) + '-' + str(climgen.hist_end_year)
-    period = str(1901) + '-' + str(2000)    # TODO - requires improvemnt
-
-    location_rec = '[Long= ' + str(round(lon, 3)) + ', ' + str(round(lon_wthr, 3))
-    location_rec += '] [Lati= ' + str(round(lat, 3)) + ', ' + str(round(lat_wthr))
-    location_rec +=  '] [Grid X,Y= ' + str(lon_indx) + ', ' + str(lat_indx) + ']'
-    box_rec = '[Boxes=   31143] [Years=' + period + '] [Multi=    0.1000] [Missing=-999]'
-    grid_ref_rec = 'Grid-ref=' + '{0:' '=4g},{1:' '=4g}'.format(lon_indx, lat_indx)
-
-    return (frst_rec, period, location_rec, box_rec, grid_ref_rec)
-
-def _generate_data_recs(pettmp):
-    """
-    create strings for data records
-    """
-    nvals = len(pettmp)
-    rec_list = []
-    for indx in range(0, nvals, 12):
-        vals_yr = pettmp[indx: indx + 12]
-        rec_str = str([round(val, 2) for val in vals_yr])
-        rec_str = rec_str.replace(', ', '\t')
-        rec_str = rec_str.replace(', ', '\t')
-        rec_str = rec_str.replace('[','')
-        rec_str = rec_str.replace(']','')
-        rec_list.append(rec_str)
-
-    return rec_list
-
 def generate_banded_rothc_wthr(form):
     """
     called from GUI; based on generate_banded_sims from HoliSoilsSpGlEc project
@@ -263,7 +146,7 @@ def generate_banded_rothc_wthr(form):
     out_dirs = _make_output_dirs()
 
     max_cells = int(form.w_max_cells.text())
-    org_soil_defn = read_soil_organic_detail(form)
+    org_soil_defn = _read_soil_organic_detail(form)
 
     # bounding box
     # ============
@@ -272,7 +155,7 @@ def generate_banded_rothc_wthr(form):
     nbands_to_prcss = end_at_band  - strt_at_band  + 1
 
     mess = 'Total # of bands: {}\twill process {} bands\t'.format(nbands, nbands_to_prcss)
-    mess += 'starting and ending at bands {} and {}'.format(strt_at_band, end_at_band)
+    mess += 'starting and ending at bands {} and {}\n'.format(strt_at_band, end_at_band)
     print(mess)
     QApplication.processEvents()
 
@@ -340,11 +223,60 @@ def generate_banded_rothc_wthr(form):
 
     return
 
+def _make_rthc_hist_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr, pettmp_hist):
+    """
+    write a RothC weather dataset
+    """
+    hdr_recs = _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr, fut_flag=False)
+    frst_rec, period, location_rec, box_rec, grid_ref_rec = hdr_recs
+
+    for metric in METRIC_LIST:
+        metric_descr = METRIC_DESCRIPS[metric]
+
+        pettmp = _reform_hist_rec(climgen, pettmp_hist[metric])
+        data_recs = _generate_data_recs(pettmp)
+
+        with open(wthr_fnames[metric], 'w') as fobj:
+            fobj.write(frst_rec)
+            fobj.write('\n.' + metric_descr)
+            fobj.write('\nPeriod=' + period + ' Variable=.' + metric)
+            fobj.write('\n' + location_rec)
+            fobj.write('\n' + box_rec)
+            fobj.write('\n' + grid_ref_rec)
+            for data_rec in data_recs:
+                fobj.write('\n' + data_rec)
+            fobj.flush()
+    return
+
+def _reform_hist_rec(climgen, pettmp):
+    """
+    create strings for header records
+    From the WorldClim database of high spatial resolution global weather and climate data.
+    """
+    seg1, nyears = _fetch_pettmp_segment(pettmp, climgen.hist_start_year, 1961, 2000)
+    seg2, nyears = _fetch_pettmp_segment(pettmp, climgen.hist_start_year, 1971, 2000)
+    pettmp = seg1 + seg2 + seg2
+    pettmp.reverse()
+
+    return pettmp
+
+def _fetch_pettmp_segment(pettmp, strt_yr_data, yr_strt, yr_end):
+    """
+    create strings for header records
+    From the WorldClim database of high spatial resolution global weather and climate data.
+    """
+    indx_strt =  12 * (yr_strt - strt_yr_data)
+    indx_end = 12 * (yr_end - strt_yr_data + 1)
+    segmnt = pettmp[indx_strt:indx_end]
+    nyears = int(len(segmnt)/12)
+
+    return segmnt, nyears
+
 def _make_rthc_fut_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr, pettmp_sim):
     """
     write a RothC weather dataset
     """
-    hdr_recs = _fetch_fut_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr)
+    hdr_recs = _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr)
     frst_rec, period, location_rec, box_rec, grid_ref_rec = hdr_recs
 
     for metric in METRIC_LIST:
@@ -364,16 +296,23 @@ def _make_rthc_fut_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen, lat
 
     return
 
-def _fetch_fut_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr):
+def _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr, fut_flag=True):
     """
     create strings for header records
     From the WorldClim database of high spatial resolution global weather and climate data.
     """
-    gcm = climgen.wthr_rsrce
-    scnr = climgen.fut_clim_scen
-    frst_rec = 'From the WorldClim database of global weather and climate data using GCM: '
-    frst_rec += gcm + '\tScenario: ' + scnr
-    period = str(climgen.sim_start_year) + '-' + str(climgen.sim_end_year)
+    if fut_flag:
+        gcm = climgen.wthr_rsrce
+        scnr = climgen.fut_clim_scen
+        frst_rec = 'From the WorldClim database of global weather and climate data using GCM: '
+        frst_rec += gcm + '\tScenario: ' + scnr
+        period = str(climgen.sim_start_year) + '-' + str(climgen.sim_end_year)
+    else:
+        frst_rec = 'From the WorldClim database of global weather and climate data using historic data'
+
+        # period = str(climgen.hist_start_year) + '-' + str(climgen.hist_end_year)
+        period = str(1901) + '-' + str(2000)    # TODO - requires improvemnt
+
     location_rec = '[Long= ' + str(round(lon, 3)) + ', ' + str(round(lon_wthr, 3))
     location_rec += '] [Lati= ' + str(round(lat, 3)) + ', ' + str(round(lat_wthr))
     location_rec +=  '] [Grid X,Y= ' + str(lon_indx) + ', ' + str(lat_indx) + ']'
@@ -381,6 +320,56 @@ def _fetch_fut_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wth
     grid_ref_rec = 'Grid-ref=' + '{0:' '=4g},{1:' '=4g}'.format(lon_indx, lat_indx)
 
     return (frst_rec, period, location_rec, box_rec, grid_ref_rec)
+
+def _generate_data_recs(pettmp):
+    """
+    create strings for data records
+    """
+    nvals = len(pettmp)
+    rec_list = []
+    for indx in range(0, nvals, 12):
+        vals_yr = pettmp[indx: indx + 12]
+        rec_str = str([round(val, 2) for val in vals_yr])
+        rec_str = rec_str.replace(', ', '\t')
+        rec_str = rec_str.replace(', ', '\t')
+        rec_str = rec_str.replace('[','')
+        rec_str = rec_str.replace(']','')
+        rec_list.append(rec_str)
+
+    return rec_list
+
+def _generate_file_names(out_dirs, grid_coord, fut_or_hist):
+    """
+     C
+     """
+    skip_flag = False
+    wthr_fnames = {}
+    nexist = 0
+    for metric in METRIC_LIST:
+        wthr_fname = metric + '_' + grid_coord + '.txt'
+        wthr_fnames[metric] = join(out_dirs[fut_or_hist], wthr_fname)
+
+        # potentially skip existing files
+        # ===============================
+        if exists(wthr_fnames[metric]):
+            nexist += 1
+
+    # if both files exist then skip
+    # =============================
+    if nexist == 2:
+        skip_flag = True
+
+    return wthr_fnames, skip_flag
+
+def check_soc_file(form):
+    """
+    SOC file is lat=618, lon=1440 = 889,920 grid cells  Masked: 652,432     Useful: 227,210
+    """
+    org_soil_defn = _read_soil_organic_detail(form)
+    bbox = org_soil_defn['lon_ll'], org_soil_defn['lat_ll'], org_soil_defn['lon_ur'], org_soil_defn['lat_ur']
+    aoi_res = _fetch_grid_cells_from_socnc(org_soil_defn, bbox)
+
+    return
 
 def _fetch_grid_cells_from_socnc(org_soil_defn, bbox):
     """
@@ -420,7 +409,7 @@ def _fetch_grid_cells_from_socnc(org_soil_defn, bbox):
 
     return site_recs
 
-def read_soil_organic_detail(form):
+def _read_soil_organic_detail(form):
     """
     GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
     """
