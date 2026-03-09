@@ -358,7 +358,7 @@ class Form(QWidget):
         self.w_ur_lat.textChanged[str].connect(self.bboxTextChanged)
         self.w_ur_lon.textChanged[str].connect(self.bboxTextChanged)
 
-        # self.changeRegion()  # populates lat/long boxes
+        self.changeRegion()  # populates lat/long boxes
 
     def fetchPrjDir(self):
         #

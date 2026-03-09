@@ -32,6 +32,7 @@ GRANULARITY = 120
 NC_FROM_TIF_FN ='GSOCmap_0.25.nc'
 METRIC_LIST = list(['precip', 'tas', 'pet'])
 METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
+                    'pet': 'pet = potential evapotranspiration [mm/month]',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
 
 def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_dirs, max_cells):
@@ -95,7 +96,7 @@ def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_di
         ' ================================================================='
         if pettmp_fut is None or pettmp_hist is None:
 
-            # expand areaa of weather extraction
+            # expand area of weather extraction
             # =================================
             wrld_clim_indices = (fut_lat_indx - 1, fut_lat_indx + 1, fut_lon_indx - 1, fut_lon_indx + 1)
             pettmp_hist = fetch_WrldClim_NC_data(form.lgr, wrld_clim_indices, climgen, hist_wthr_dsets)
@@ -108,25 +109,14 @@ def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_di
                 continue
             else:
                 pettmp_hist, pettmp_fut = retcode
-                pettmp_sim = join_hist_fut_to_sim_wthr(climgen, pettmp_hist, pettmp_fut)
-        else:
+
+            pettmp_hist = _generate_pet(climgen, pettmp_hist, lat)
+            pettmp_fut = _generate_pet(climgen, pettmp_fut, lat)
+
             pettmp_sim = join_hist_fut_to_sim_wthr(climgen, pettmp_hist, pettmp_fut)
 
-        # generate PET
-        # ============
-        year = climgen.sim_start_year
-        pet = []
-        for indx1 in range(0, len(pettmp_sim['tas']), 12):
-            indx2 = indx1 + 12
-            one_yr_tas = pettmp_sim['tas'][indx1:indx2]
-            pet += thornthwaite(one_yr_tas, lat, year)
-            year += 1
-
-        pettmp_sim['pet'] = pet
-
-        # create weather
-        # ==============
-        if fut_skip_flag and hist_skip_flag:
+            # create weather and PET
+            # ======================
             _make_rthc_fut_files(wthr_fut_fns, lat, lat_indx, lon, lon_indx,
                                             climgen, lat_wthr_indx, lon_wthr_indx, pettmp_sim)
             _make_rthc_hist_files(wthr_hist_fns, lat, lat_indx, lon, lon_indx,
@@ -511,7 +501,9 @@ def _make_output_dirs():
     return  out_dirs
 
 def _fetch_wrld_clim_indices(climgen, bbox):
-
+    """
+    not yet used
+    """
     lon_ll, lat_ll, lon_ur, lat_ur = bbox
 
     resol = climgen.fut_wthr_set_defn['resol_lat']
@@ -526,3 +518,18 @@ def _fetch_wrld_clim_indices(climgen, bbox):
 
     return (lat_indx_min, lat_indx_max, lon_indx_min, lon_indx_max)
 
+def _generate_pet(climgen, pettmp, lat):
+    """
+    generate PET
+    """
+    year = climgen.sim_start_year
+    pet = []
+    for indx1 in range(0, len(pettmp['tas']), 12):
+        indx2 = indx1 + 12
+        one_yr_tas = pettmp['tas'][indx1:indx2]
+        pet += thornthwaite(one_yr_tas, lat, year)
+        year += 1
+
+    pettmp['pet'] = pet
+
+    return pettmp
