@@ -22,16 +22,15 @@ from PyQt5.QtWidgets import QApplication
 from getClimGenNC import ClimGenNC
 from getClimGenFns import (fetch_WrldClim_data, fetch_WrldClim_NC_data, associate_climate,
                            open_wthr_NC_sets, get_wthr_nc_coords, join_hist_fut_to_sim_wthr)
-from glbl_ecsse_low_level_fns import update_wthr_rothc_progress, update_soc_rothc_progress
-
 from thornthwaite import thornthwaite
+from glbl_ecsse_low_level_fns import update_wthr_rothc_progress, update_soc_rothc_progress
 
 ERROR_STR = '*** Error *** '
 WARNING_STR = '*** Warning *** '
 
 GRANULARITY = 120
 NC_FROM_TIF_FN ='GSOCmap_0.25.nc'
-METRIC_LIST = list(['precip', 'tas'])
+METRIC_LIST = list(['precip', 'tas', 'pet'])
 METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
 
@@ -64,7 +63,6 @@ def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_di
             break
 
         gran_lat, gran_lon, lat, lat_indx, lon, lon_indx, grid_coord, soil_carb = site_rec
-        # grid_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
         grid_coord = '{0:0=4g}_{1:0=4g}'.format(lon_indx, lat_indx)
 
         wthr_fut_fns, fut_skip_flag = _generate_file_names(out_dirs, grid_coord, 'fut')
@@ -81,8 +79,8 @@ def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_di
             noutbnds += 1
             continue
 
-        lat_wthr = climgen.fut_wthr_set_defn['latitudes'][fut_lat_indx]
-        lon_wthr = climgen.fut_wthr_set_defn['longitudes'][fut_lon_indx]
+        lat_wthr_indx = climgen.fut_wthr_set_defn['latitudes'][fut_lat_indx]
+        lon_wthr_indx = climgen.fut_wthr_set_defn['longitudes'][fut_lon_indx]
 
         # Get future and historic weather data
         # ====================================
@@ -114,15 +112,27 @@ def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_di
         else:
             pettmp_sim = join_hist_fut_to_sim_wthr(climgen, pettmp_hist, pettmp_fut)
 
+        # generate PET
+        # ============
+        year = climgen.sim_start_year
+        pet = []
+        for indx1 in range(0, len(pettmp_sim['tas']), 12):
+            indx2 = indx1 + 12
+            one_yr_tas = pettmp_sim['tas'][indx1:indx2]
+            pet += thornthwaite(one_yr_tas, lat, year)
+            year += 1
+
+        pettmp_sim['pet'] = pet
+
         # create weather
         # ==============
-        if not fut_skip_flag:
-            _make_rthc_fut_files(wthr_fut_fns, lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr, pettmp_sim)
+        if fut_skip_flag and hist_skip_flag:
+            _make_rthc_fut_files(wthr_fut_fns, lat, lat_indx, lon, lon_indx,
+                                            climgen, lat_wthr_indx, lon_wthr_indx, pettmp_sim)
+            _make_rthc_hist_files(wthr_hist_fns, lat, lat_indx, lon, lon_indx,
+                                            climgen, lat_wthr_indx, lon_wthr_indx, pettmp_hist)
+            ncmpltd += 1
 
-        if not hist_skip_flag:
-            _make_rthc_hist_files(wthr_hist_fns, lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr, pettmp_hist)
-
-        ncmpltd += 1
         if ncmpltd >= max_cells:
             break
 
@@ -223,11 +233,11 @@ def generate_banded_rothc_wthr(form):
 
     return
 
-def _make_rthc_hist_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr, pettmp_hist):
+def _make_rthc_hist_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx, pettmp_hist):
     """
     write a RothC weather dataset
     """
-    hdr_recs = _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr, fut_flag=False)
+    hdr_recs = _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx, fut_flag=False)
     frst_rec, period, location_rec, box_rec, grid_ref_rec = hdr_recs
 
     for metric in METRIC_LIST:
@@ -272,11 +282,11 @@ def _fetch_pettmp_segment(pettmp, strt_yr_data, yr_strt, yr_end):
 
     return segmnt, nyears
 
-def _make_rthc_fut_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr, pettmp_sim):
+def _make_rthc_fut_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx, pettmp_sim):
     """
     write a RothC weather dataset
     """
-    hdr_recs = _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr)
+    hdr_recs = _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx)
     frst_rec, period, location_rec, box_rec, grid_ref_rec = hdr_recs
 
     for metric in METRIC_LIST:
@@ -296,7 +306,7 @@ def _make_rthc_fut_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen, lat
 
     return
 
-def _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr, fut_flag=True):
+def _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx, fut_flag=True):
     """
     create strings for header records
     From the WorldClim database of high spatial resolution global weather and climate data.
@@ -313,8 +323,8 @@ def _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr, lon_wthr, f
         # period = str(climgen.hist_start_year) + '-' + str(climgen.hist_end_year)
         period = str(1901) + '-' + str(2000)    # TODO - requires improvemnt
 
-    location_rec = '[Long= ' + str(round(lon, 3)) + ', ' + str(round(lon_wthr, 3))
-    location_rec += '] [Lati= ' + str(round(lat, 3)) + ', ' + str(round(lat_wthr))
+    location_rec = '[Long= ' + str(round(lon, 3)) + ', ' + str(round(lon_wthr_indx, 3))
+    location_rec += '] [Lati= ' + str(round(lat, 3)) + ', ' + str(round(lat_wthr_indx))
     location_rec +=  '] [Grid X,Y= ' + str(lon_indx) + ', ' + str(lat_indx) + ']'
     box_rec = '[Boxes=   31143] [Years=' + period + '] [Multi=    0.1000] [Missing=-999]'
     grid_ref_rec = 'Grid-ref=' + '{0:' '=4g},{1:' '=4g}'.format(lon_indx, lat_indx)
