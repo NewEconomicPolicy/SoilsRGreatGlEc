@@ -110,18 +110,18 @@ def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_di
             else:
                 pettmp_hist, pettmp_fut = retcode
 
-            pettmp_hist = _generate_pet(climgen, pettmp_hist, lat)
-            pettmp_fut = _generate_pet(climgen, pettmp_fut, lat)
+        pettmp_hist = _generate_pet(climgen, pettmp_hist, lat)
+        pettmp_fut = _generate_pet(climgen, pettmp_fut, lat)
 
-            pettmp_sim = join_hist_fut_to_sim_wthr(climgen, pettmp_hist, pettmp_fut)
+        pettmp_sim = join_hist_fut_to_sim_wthr(climgen, pettmp_hist, pettmp_fut)
 
-            # create weather and PET
-            # ======================
-            _make_rthc_fut_files(wthr_fut_fns, lat, lat_indx, lon, lon_indx,
-                                            climgen, lat_wthr_indx, lon_wthr_indx, pettmp_sim)
-            _make_rthc_hist_files(wthr_hist_fns, lat, lat_indx, lon, lon_indx,
-                                            climgen, lat_wthr_indx, lon_wthr_indx, pettmp_hist)
-            ncmpltd += 1
+        # create weather and PET
+        # ======================
+        _make_rthc_files(wthr_fut_fns, lat, lat_indx, lon, lon_indx,
+                                                climgen, lat_wthr_indx, lon_wthr_indx, pettmp_sim, fut_flag=True)
+        _make_rthc_files(wthr_hist_fns, lat, lat_indx, lon, lon_indx,
+                                                climgen, lat_wthr_indx, lon_wthr_indx, pettmp_hist)
+        ncmpltd += 1
 
         if ncmpltd >= max_cells:
             break
@@ -223,18 +223,22 @@ def generate_banded_rothc_wthr(form):
 
     return
 
-def _make_rthc_hist_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx, pettmp_hist):
+def _make_rthc_files(wthr_fnames, lat, lat_indx, lon, lon_indx,
+                     climgen, lat_wthr_indx, lon_wthr_indx, pettmp, fut_flag=False):
     """
     write a RothC weather dataset
     """
-    hdr_recs = _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx, fut_flag=False)
+    hdr_recs = _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx, fut_flag)
     frst_rec, period, location_rec, box_rec, grid_ref_rec = hdr_recs
 
     for metric in METRIC_LIST:
         metric_descr = METRIC_DESCRIPS[metric]
 
-        pettmp = _reform_hist_rec(climgen, pettmp_hist[metric])
-        data_recs = _generate_data_recs(pettmp)
+        if fut_flag:
+            data_recs = _generate_data_recs(pettmp[metric])
+        else:
+            pettmp_hist = _reform_hist_rec(climgen, pettmp[metric])
+            data_recs = _generate_data_recs(pettmp_hist)
 
         with open(wthr_fnames[metric], 'w') as fobj:
             fobj.write(frst_rec)
@@ -271,30 +275,6 @@ def _fetch_pettmp_segment(pettmp, strt_yr_data, yr_strt, yr_end):
     nyears = int(len(segmnt)/12)
 
     return segmnt, nyears
-
-def _make_rthc_fut_files(wthr_fnames, lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx, pettmp_sim):
-    """
-    write a RothC weather dataset
-    """
-    hdr_recs = _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx)
-    frst_rec, period, location_rec, box_rec, grid_ref_rec = hdr_recs
-
-    for metric in METRIC_LIST:
-        metric_descr = METRIC_DESCRIPS[metric]
-        data_recs = _generate_data_recs(pettmp_sim[metric])
-
-        with open(wthr_fnames[metric], 'w') as fobj:
-            fobj.write(frst_rec)
-            fobj.write('\n.' + metric_descr)
-            fobj.write('\nPeriod=' + period + ' Variable=.' + metric)
-            fobj.write('\n' + location_rec)
-            fobj.write('\n' + box_rec)
-            fobj.write('\n' + grid_ref_rec)
-            for data_rec in data_recs:
-                fobj.write('\n' + data_rec)
-            fobj.flush()
-
-    return
 
 def _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx, fut_flag=True):
     """
