@@ -34,24 +34,35 @@ METRIC_LIST = list(['precip', 'tas', 'pet'])
 METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
                     'pet': 'pet = potential evapotranspiration [mm/month]',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
+def generate_banded_rothc_wthr(form):
+    """
+    called from GUI; based on generate_banded_sims from HoliSoilsSpGlEc project
+    GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
+    """
+    form.w_abandon.setCheckState(0)
+    out_dirs = _make_output_dirs()
+    max_cells = int(form.w_max_cells.text())
+    org_soil_defn = _read_soil_organic_detail(form)
 
-def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_dirs, max_cells):
-    """
-    C
-    """
+    # weather choice
+    # ==============
+    weather_resource = form.w_combo10w.currentText()
+    sim_strt_year = 2001
+
+    fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
+    sim_end_year = form.wthr_sets[fut_wthr_set]['year_end']
+
+    this_gcm = form.w_combo10w.currentText()
+    scnr =  form.w_combo10.currentText()
+
+    region, crop_name = 2 * [None]
+    climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
+
     fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
 
     last_time = time()
-    aoi_res = _fetch_grid_cells_from_socnc(org_soil_defn, bbox)
-    lon_ll_aoi, lat_ll_aoi, lon_ur_aoi, lat_ur_aoi = bbox
-
-    n_soc_cells = len(aoi_res)
-    mess = 'Band {}\taoi LL lon/lat: {} {}\t'.format(num_band, lon_ll_aoi, lat_ll_aoi)
-    print(mess + 'UR lon/lat: {} {}\t# cells with data: {}'.format(lon_ur_aoi, lat_ur_aoi, n_soc_cells))
-    QApplication.processEvents()
-    if n_soc_cells == 0:
-        return
+    aoi_res = _fetch_grid_cells_from_socnc(form, out_dirs, max_cells)
 
     # main loop
     # =========
@@ -63,14 +74,7 @@ def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_di
             print(WARNING_STR + '\nCancelling run')
             break
 
-        gran_lat, gran_lon, lat, lat_indx, lon, lon_indx, grid_coord, soil_carb = site_rec
-        grid_coord = '{0:0=4g}_{1:0=4g}'.format(lon_indx, lat_indx)
-
-        wthr_fut_fns, fut_skip_flag = _generate_file_names(out_dirs, grid_coord, 'fut')
-        wthr_hist_fns, hist_skip_flag = _generate_file_names(out_dirs, grid_coord, 'hist')
-        if fut_skip_flag and hist_skip_flag:
-            nskipped += 1
-            continue
+        lat, lat_indx, lon, lon_indx, grid_coord, wthr_fut_fns, wthr_hist_fns, soil_carb = site_rec
 
         # weather set lat/lons
         # ====================
@@ -123,103 +127,9 @@ def _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_di
                                                 climgen, lat_wthr_indx, lon_wthr_indx, pettmp_hist)
         ncmpltd += 1
 
-        if ncmpltd >= max_cells:
-            break
-
-    mess = '\nCompleted RothC weather generation for Band {}'.format(num_band)
-    mess += ' - total number of sets written: {}'.format(ncmpltd)
+    mess = '\nCompleted RothC weather generation  - total number of sets written: {}'.format(ncmpltd)
     mess += '\n\tCells skipped: {}\tnno data: {}\tcompleted: {}'.format(nskipped, nnodata, ncmpltd)
     print(mess + '\tout of bounds: {}\n'.format(noutbnds))
-
-    return
-
-def generate_banded_rothc_wthr(form):
-    """
-    called from GUI; based on generate_banded_sims from HoliSoilsSpGlEc project
-    GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
-    """
-    form.w_abandon.setCheckState(0)
-    lat_step = float(form.w_lat_step.text())
-    strt_at_band = int(form.w_strt_band.text())
-    end_at_band = int(form.w_end_band.text())
-
-    out_dirs = _make_output_dirs()
-
-    max_cells = int(form.w_max_cells.text())
-    org_soil_defn = _read_soil_organic_detail(form)
-
-    # bounding box
-    # ============
-    lon_ll_aoi, lat_ll_aoi, lon_ur_aoi, lat_ur_aoi = form.setup['bbox']
-    nbands = int((lat_ur_aoi - lat_ll_aoi) / lat_step) + 1
-    nbands_to_prcss = end_at_band  - strt_at_band  + 1
-
-    mess = 'Total # of bands: {}\twill process {} bands\t'.format(nbands, nbands_to_prcss)
-    mess += 'starting and ending at bands {} and {}\n'.format(strt_at_band, end_at_band)
-    print(mess)
-    QApplication.processEvents()
-
-    bbox_aoi = list([lon_ll_aoi,lat_ll_aoi,lon_ur_aoi,lat_ur_aoi])
-
-    # weather choice
-    # ==============
-    weather_resource = form.w_combo10w.currentText()
-
-    # main banding loop
-    # =================
-    sim_strt_year = 2001
-
-    fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
-    sim_end_year = form.wthr_sets[fut_wthr_set]['year_end']
-
-    this_gcm = form.w_combo10w.currentText()
-    scnr =  form.w_combo10.currentText()
-
-    region, crop_name = 2 * [None]
-    climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
-
-    band_reports = []
-    lat_ur = lat_ur_aoi
-    for iband in range(nbands):
-        lat_ll_new = lat_ur - lat_step
-        num_band = iband + 1
-        if lat_ll_new > lat_ur_aoi:
-            mess = 'Skipping simulations at band {} since new band latitude floor '.format(num_band)
-            print(mess + '{} exceeds AOI upper latitude {}'.format(round(lat_ll_new,6), round(lat_ur_aoi, 3)))
-
-        elif num_band < strt_at_band:
-            mess = 'Skipping out of area band {} of {}'.format(num_band, nbands)
-            mess += ' with latitude extent of min: {}\tmax: {}'.format(round(lat_ll_new, 3), round(lat_ur, 3))
-            print(mess)
-
-        elif num_band > end_at_band:
-            print('Exiting from processing after {} bands'.format(num_band - 1))
-            break
-        else:
-            bbox = list([lon_ll_aoi, lat_ll_new, lon_ur_aoi, lat_ur])
-            form.bbox = bbox
-            mess = '\nProcessing band {} of {}'.format(num_band, nbands_to_prcss)
-            mess += ' with latitude extent of min: {}\tmax: {}'.format(round(lat_ll_new, 3), round(lat_ur, 3))
-            QApplication.processEvents()
-
-            report = _generate_rothc_weather(form, climgen, org_soil_defn, num_band, bbox, out_dirs, max_cells)   # does actual work
-            band_reports.append(report)
-
-        # check to see if the last band is completed
-        # ==========================================
-        if lat_ll_aoi > lat_ll_new:
-            break
-
-        lat_ur = lat_ll_new
-        if form.w_abandon.isChecked():
-            break
-
-    print('Finished processing after {} bands of latitude extents'.format(num_band - 1))
-    #      ======================================================
-    QApplication.processEvents()
-    form.band_reports = band_reports
-    for report in band_reports:
-        form.lgr.info(report)
 
     return
 
@@ -341,51 +251,49 @@ def _generate_file_names(out_dirs, grid_coord, fut_or_hist):
 
     return wthr_fnames, skip_flag
 
-def check_soc_file(form):
+def _fetch_grid_cells_from_socnc(form, out_dirs, max_cells):
     """
     SOC file is lat=618, lon=1440 = 889,920 grid cells  Masked: 652,432     Useful: 227,210
     """
     org_soil_defn = _read_soil_organic_detail(form)
-    bbox = org_soil_defn['lon_ll'], org_soil_defn['lat_ll'], org_soil_defn['lon_ur'], org_soil_defn['lat_ur']
-    aoi_res = _fetch_grid_cells_from_socnc(org_soil_defn, bbox)
-
-    return
-
-def _fetch_grid_cells_from_socnc(org_soil_defn, bbox):
-    """
-    fetch grid cells from socNC file for given bounding box
-    """
-    lon_ll, lat_ll, lon_ur, lat_ur = bbox
-
-    # check each value, discarding Nans - total size of file is 618 x 1440 = 889,920 cells
-    # ====================================================================================
-    soc_dset = Dataset(org_soil_defn['ds_soil_org'] )
-    lat_ll_indx, lon_ll_indx = get_wthr_nc_coords(org_soil_defn, lat_ll, lon_ll)
-    lat_ur_indx, lon_ur_indx = get_wthr_nc_coords(org_soil_defn, lat_ur, lon_ur)
+    soc_dset = Dataset(org_soil_defn['ds_soil_org'])
+    slice = soc_dset.variables['Band1'][:][:]
 
     last_time = time()
-
-    nmasked, ncmpltd = 2 * [0]
+    nmasked, ncmpltd, nskipped = 3 * [0]
     site_recs = []
-    for lat_indx in range(lat_ll_indx, lat_ur_indx):
-        lat = org_soil_defn['latitudes'][lat_indx]
+    for lat_indx, lat in enumerate(soc_dset.variables['lat']):
+        lat = lat.item()
 
-        for lon_indx in range(lon_ll_indx, lon_ur_indx):
-            lon = org_soil_defn['longitudes'][lon_indx]
+        for lon_indx, lon in enumerate(soc_dset.variables['lon']):
             last_time = update_soc_rothc_progress(last_time, nmasked, ncmpltd)
 
-            soil_carb = soc_dset.variables['Band1'][lat_indx][lon_indx]
-
-            # discard masked grid cells
+            lon = lon.item()
+            soil_carb = slice[lat_indx][lon_indx]
             if is_masked(soil_carb):
                 val = soil_carb.item()  # val should be zero
                 nmasked += 1
             else:
-                gran_lat = round((90.0 - lat) * GRANULARITY)
-                gran_lon = round((180.0 + lon) * GRANULARITY)
-                grid_coord = '{0:0=5g}_{1:0=5g}'.format(gran_lat, gran_lon)
-                site_rec = ([gran_lat, gran_lon, lat, lat_indx, lon, lon_indx, grid_coord, soil_carb])
+                grid_coord = '{0:0=4g}_{1:0=4g}'.format(lon_indx, lat_indx)
+                wthr_fut_fns, fut_skip_flag = _generate_file_names(out_dirs, grid_coord, 'fut')
+                wthr_hist_fns, hist_skip_flag = _generate_file_names(out_dirs, grid_coord, 'hist')
+                if fut_skip_flag and hist_skip_flag:
+                    nskipped += 1
+                    continue
+
+                site_rec = ([lat, lat_indx, lon, lon_indx, grid_coord, wthr_fut_fns, wthr_hist_fns, soil_carb])
                 site_recs.append(site_rec)
+                ncmpltd += 1
+
+            if ncmpltd > max_cells:
+                break
+
+        if ncmpltd > max_cells:
+            break
+
+    soc_dset.close()
+
+    mess = 'SOC check: # with data: {}\tmasked: {}'.format(ncmpltd, nmasked)
 
     return site_recs
 
