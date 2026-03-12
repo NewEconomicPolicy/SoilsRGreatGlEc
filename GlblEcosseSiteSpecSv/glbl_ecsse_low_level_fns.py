@@ -546,7 +546,7 @@ def update_soc_rothc_progress(last_time, nmasked, ncompleted):
     """
     new_time = time()
     if new_time - last_time > 5:
-        mess = '\rCells:  Completed: '.format(ncompleted, ',') + '  Masked: ' + format(nmasked, ',')
+        mess = '\rCells:  Completed: ' + format(ncompleted, ',') + '  Masked: ' + format(nmasked, ',')
         stdout.flush()
         stdout.write(mess)
         last_time = new_time

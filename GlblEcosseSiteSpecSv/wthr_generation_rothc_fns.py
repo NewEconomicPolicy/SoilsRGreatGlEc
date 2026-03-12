@@ -34,7 +34,7 @@ METRIC_LIST = list(['precip', 'tas', 'pet'])
 METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
                     'pet': 'pet = potential evapotranspiration [mm/month]',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
-def generate_banded_rothc_wthr(form):
+def generate_rothc_wthr(form):
     """
     called from GUI; based on generate_banded_sims from HoliSoilsSpGlEc project
     GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
@@ -62,7 +62,7 @@ def generate_banded_rothc_wthr(form):
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
 
     last_time = time()
-    aoi_res = _fetch_grid_cells_from_socnc(form, out_dirs, max_cells)
+    aoi_res = _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, max_cells)
 
     # main loop
     # =========
@@ -84,8 +84,8 @@ def generate_banded_rothc_wthr(form):
             noutbnds += 1
             continue
 
-        lat_wthr_indx = climgen.fut_wthr_set_defn['latitudes'][fut_lat_indx]
-        lon_wthr_indx = climgen.fut_wthr_set_defn['longitudes'][fut_lon_indx]
+        lat_wthr = climgen.fut_wthr_set_defn['latitudes'][fut_lat_indx]
+        lon_wthr = climgen.fut_wthr_set_defn['longitudes'][fut_lon_indx]
 
         # Get future and historic weather data
         # ====================================
@@ -122,9 +122,9 @@ def generate_banded_rothc_wthr(form):
         # create weather and PET
         # ======================
         _make_rthc_files(wthr_fut_fns, lat, lat_indx, lon, lon_indx,
-                                                climgen, lat_wthr_indx, lon_wthr_indx, pettmp_sim, fut_flag=True)
+                                                climgen, fut_lat_indx, fut_lon_indx, pettmp_sim, fut_flag=True)
         _make_rthc_files(wthr_hist_fns, lat, lat_indx, lon, lon_indx,
-                                                climgen, lat_wthr_indx, lon_wthr_indx, pettmp_hist)
+                                                climgen, fut_lat_indx, fut_lon_indx, pettmp_hist)
         ncmpltd += 1
 
     mess = '\nCompleted RothC weather generation  - total number of sets written: {}'.format(ncmpltd)
@@ -189,7 +189,7 @@ def _fetch_pettmp_segment(pettmp, strt_yr_data, yr_strt, yr_end):
 def _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx, fut_flag=True):
     """
     create strings for header records
-    From the WorldClim database of high spatial resolution global weather and climate data.
+    TODO: location_rec amd box_rec need clarifying
     """
     if fut_flag:
         gcm = climgen.wthr_rsrce
@@ -251,12 +251,12 @@ def _generate_file_names(out_dirs, grid_coord, fut_or_hist):
 
     return wthr_fnames, skip_flag
 
-def _fetch_grid_cells_from_socnc(form, out_dirs, max_cells):
+def _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, max_cells):
     """
-    SOC file is lat=618, lon=1440 = 889,920 grid cells  Masked: 652,432     Useful: 227,210
+    SOC file is lat=618, lon=1440 = 889,920 grid cells  Masked: 652,432     with value: 227,210
     """
-    org_soil_defn = _read_soil_organic_detail(form)
-    soc_dset = Dataset(org_soil_defn['ds_soil_org'])
+    ds_soil_org = org_soil_defn['ds_soil_org']
+    soc_dset = Dataset(ds_soil_org)
     slice = soc_dset.variables['Band1'][:][:]
 
     last_time = time()
@@ -285,15 +285,16 @@ def _fetch_grid_cells_from_socnc(form, out_dirs, max_cells):
                 site_recs.append(site_rec)
                 ncmpltd += 1
 
-            if ncmpltd > max_cells:
+            if ncmpltd >= max_cells:
                 break
 
-        if ncmpltd > max_cells:
+        if ncmpltd >= max_cells:
             break
 
     soc_dset.close()
 
-    mess = 'SOC check: # with data: {}\tmasked: {}'.format(ncmpltd, nmasked)
+    mess = '\nRetrieved {} cells from SOC file: {}'.format(ncmpltd, ds_soil_org)
+    print(mess)
 
     return site_recs
 

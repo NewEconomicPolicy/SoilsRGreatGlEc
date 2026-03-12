@@ -24,7 +24,7 @@ from commonCmpntsGUI import exit_clicked, commonSection, grid_coarseness, calcul
 from shape_funcs import format_bbox, calculate_area
 
 from wthr_generation_fns import generate_all_weather
-from wthr_generation_rothc_fns import generate_banded_rothc_wthr
+from wthr_generation_rothc_fns import generate_rothc_wthr
 
 WARNING_STR = '*** Warning *** '
 
@@ -380,7 +380,7 @@ class Form(QWidget):
         """
         generate weather for all regions, scenarios and GCMs
         """
-        generate_banded_rothc_wthr(self)
+        generate_rothc_wthr(self)
 
         return
 
