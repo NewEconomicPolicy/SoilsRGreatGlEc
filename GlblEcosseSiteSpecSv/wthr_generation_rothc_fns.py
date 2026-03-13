@@ -14,6 +14,7 @@ __author__ = 's03mm5'
 
 from os import mkdir
 from os.path import split, join, exists, lexists, normpath
+from pathlib import Path
 from numpy.ma import is_masked
 from netCDF4 import Dataset
 from time import time
@@ -42,13 +43,13 @@ def generate_rothc_wthr(form):
     GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
     """
     form.w_abandon.setCheckState(0)
-    out_dirs = _make_output_dirs()
+    out_dirs, no_wrthr_list_fn = _make_output_dirs()
     max_cells = int(form.w_max_cells.text())
     org_soil_defn = _read_soil_organic_detail(form)
 
     # weather choice
     # ==============
-    weather_resource = form.w_combo10w.currentText()
+
     sim_strt_year = 2001
 
     fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
@@ -66,6 +67,9 @@ def generate_rothc_wthr(form):
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
 
     last_time = time()
+    fobj = open(join(no_wrthr_list_fn, 'w'))
+
+
     aoi_res = _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, max_cells)
 
     # main loop
@@ -399,7 +403,7 @@ def _fetch_soil_org_nc_parms(nc_fname):
 
 def _make_output_dirs():
     """
-    if necessary create output directories
+    if necessary create output directories and no weather data file
     """
     out_dir = 'E:\\Saeed\\outputs'
     if not exists(out_dir):
@@ -412,7 +416,13 @@ def _make_output_dirs():
         if not exists(out_dirs[ctgry]):
             mkdir(out_dirs[ctgry])
 
-    return  out_dirs
+    # create no weather data file
+    # ===========================
+    no_wrthr_list_fn = join(out_dir, 'no_wthr_list.csv')
+    if not exists(no_wrthr_list_fn):
+        Path(no_wrthr_list_fn).touch()
+
+    return  out_dirs, no_wrthr_list_fn
 
 def _fetch_wrld_clim_indices(climgen, bbox):
     """
