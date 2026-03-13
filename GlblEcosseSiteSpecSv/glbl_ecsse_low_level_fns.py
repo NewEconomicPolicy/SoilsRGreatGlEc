@@ -540,13 +540,16 @@ def update_progress(last_time, ncompleted, nskipped, ntotal_grow, ngrowing, nno_
 
     return last_time
 
-def update_soc_rothc_progress(last_time, nmasked, ncompleted):
+def update_soc_rothc_progress(last_time, nmasked, ncompleted, nskipped, icount):
     """
     Update progress bar
     """
     new_time = time()
     if new_time - last_time > 5:
-        mess = '\rCells:  Completed: ' + format(ncompleted, ',') + '  Masked: ' + format(nmasked, ',')
+        mess = '\rCells:  With SOC: {:6s}'.format(format(ncompleted, ','))
+        mess += '\tMasked: {:6s}'.format(format(nmasked, ','))
+        mess += '\tSkipped: {:6s}'.format(format(nskipped, ','))
+        mess += '\tCounter: {:6s}'.format(format(icount, ','))
         stdout.flush()
         stdout.write(mess)
         last_time = new_time
@@ -563,10 +566,11 @@ def update_wthr_rothc_progress(last_time, noutbnds, nnodata, ncmpltd, nskipped, 
         QApplication.processEvents()
         if w_abandon.isChecked():
             cancel_flag = True
-        mess = '\rCells:  Completed: {:=6d} '.format(ncmpltd, ',')
-        mess += '  Out of bounds: {:=6d}'.format(noutbnds, ',')
-        mess += '  No climate data: ' + format(nnodata, ',')
-        mess += '  Skipped: ' + format(nskipped, ',')
+
+        mess = '\rCells:  Completed: {:6s}'.format(format(ncmpltd, ','))
+        mess += '  Out of bounds: {:6s} '.format(format(noutbnds, ','))
+        mess += '  No climate data: {:6s} '.format(format(nnodata, ','))
+        mess += '  Skipped: {:6s} '.format(format(nskipped, ','))
         stdout.flush()
         stdout.write(mess)
         last_time = new_time

@@ -34,6 +34,8 @@ METRIC_LIST = list(['precip', 'tas', 'pet'])
 METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
                     'pet': 'pet = potential evapotranspiration [mm/month]',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
+NMETRICS = len(METRIC_LIST)
+
 def generate_rothc_wthr(form):
     """
     called from GUI; based on generate_banded_sims from HoliSoilsSpGlEc project
@@ -57,6 +59,8 @@ def generate_rothc_wthr(form):
 
     region, crop_name = 2 * [None]
     climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
+    nlats = len(climgen.fut_wthr_set_defn['latitudes'])
+    nlons = len(climgen.fut_wthr_set_defn['longitudes'])
 
     fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
@@ -102,12 +106,14 @@ def generate_rothc_wthr(form):
 
             # expand area of weather extraction
             # =================================
-            wrld_clim_indices = (fut_lat_indx - 1, fut_lat_indx + 1, fut_lon_indx - 1, fut_lon_indx + 1)
+            nextnsn = 5
+            wrld_clim_indices = _fetch_wthr_search_indices(fut_lat_indx, nlats, fut_lon_indx, nlons, nextnsn)
             pettmp_hist = fetch_WrldClim_NC_data(form.lgr, wrld_clim_indices, climgen, hist_wthr_dsets)
             pettmp_fut = fetch_WrldClim_NC_data(form.lgr, wrld_clim_indices, climgen, fut_wthr_dsets)
-            retcode = associate_climate(site_rec, climgen, pettmp_hist, pettmp_fut)
+            site_rec_frig = (lat_indx, lon_indx, lat, lon)
+            retcode = associate_climate(site_rec_frig, climgen, pettmp_hist, pettmp_fut, report_flag=False)
             if len(retcode) == 0:
-                mess = WARNING_STR + 'no weather data'
+                mess = '\n' + WARNING_STR + 'no weather data'
                 print(mess + ' for site with lat: {}\tlon: {}'.format(round(lat, 3), round(lon, 3)))
                 nnodata += 1
                 continue
@@ -127,11 +133,25 @@ def generate_rothc_wthr(form):
                                                 climgen, fut_lat_indx, fut_lon_indx, pettmp_hist)
         ncmpltd += 1
 
-    mess = '\nCompleted RothC weather generation  - total number of sets written: {}'.format(ncmpltd)
-    mess += '\n\tCells skipped: {}\tnno data: {}\tcompleted: {}'.format(nskipped, nnodata, ncmpltd)
+    mess = '\nCompleted weather generation  - number of sets completed: {}'.format(ncmpltd)
+    mess += '\tskipped: {}\tno data: {}'.format(nskipped, nnodata)
     print(mess + '\tout of bounds: {}\n'.format(noutbnds))
 
     return
+
+def _fetch_wthr_search_indices(lat_indx, nlats, lon_indx, nlons, nextnsn):
+    """
+    search box must lie within weather dataset extent
+    """
+    lat_ll_indx = max(lat_indx - nextnsn, 0)
+    lon_ll_indx = max(lon_indx - nextnsn, 0)
+
+    lat_ur_indx = min(lat_indx + nextnsn, nlats)
+    lon_ur_indx = min(lon_indx + nextnsn, nlons)
+
+    wrld_clim_indices = (lat_ll_indx, lat_ur_indx, lon_ll_indx, lon_ur_indx)
+
+    return wrld_clim_indices
 
 def _make_rthc_files(wthr_fnames, lat, lat_indx, lon, lon_indx,
                      climgen, lat_wthr_indx, lon_wthr_indx, pettmp, fut_flag=False):
@@ -246,7 +266,7 @@ def _generate_file_names(out_dirs, grid_coord, fut_or_hist):
 
     # if both files exist then skip
     # =============================
-    if nexist == 2:
+    if nexist == NMETRICS:
         skip_flag = True
 
     return wthr_fnames, skip_flag
@@ -255,18 +275,23 @@ def _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, max_cells):
     """
     SOC file is lat=618, lon=1440 = 889,920 grid cells  Masked: 652,432     with value: 227,210
     """
+    START_FROM = 138000
+
     ds_soil_org = org_soil_defn['ds_soil_org']
     soc_dset = Dataset(ds_soil_org)
     slice = soc_dset.variables['Band1'][:][:]
 
     last_time = time()
-    nmasked, ncmpltd, nskipped = 3 * [0]
+    nmasked, ncmpltd, nskipped, icount = 4 * [0]
     site_recs = []
     for lat_indx, lat in enumerate(soc_dset.variables['lat']):
         lat = lat.item()
 
         for lon_indx, lon in enumerate(soc_dset.variables['lon']):
-            last_time = update_soc_rothc_progress(last_time, nmasked, ncmpltd)
+            last_time = update_soc_rothc_progress(last_time, nmasked, ncmpltd, nskipped, icount)
+            icount += 1
+            if icount < START_FROM:
+                continue
 
             lon = lon.item()
             soil_carb = slice[lat_indx][lon_indx]
@@ -293,7 +318,7 @@ def _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, max_cells):
 
     soc_dset.close()
 
-    mess = '\nRetrieved {} cells from SOC file: {}'.format(ncmpltd, ds_soil_org)
+    mess = '\nRetrieved {} cells from SOC file: {}'.format(format(ncmpltd, ',' ), ds_soil_org)
     print(mess)
 
     return site_recs
