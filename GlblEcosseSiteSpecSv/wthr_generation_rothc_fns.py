@@ -17,6 +17,7 @@ from os.path import split, join, exists, lexists, normpath
 from pathlib import Path
 from numpy.ma import is_masked
 from netCDF4 import Dataset
+from csv import writer, reader
 from time import time
 from PyQt5.QtWidgets import QApplication
 
@@ -43,13 +44,13 @@ def generate_rothc_wthr(form):
     GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
     """
     form.w_abandon.setCheckState(0)
-    out_dirs, no_wrthr_list_fn = _make_output_dirs()
+    out_dirs, no_wrthr_list_fn, exstng_no_wrthr_coords = _make_output_dirs()
+    new_no_wrthr_coords = []
     max_cells = int(form.w_max_cells.text())
     org_soil_defn = _read_soil_organic_detail(form)
 
     # weather choice
     # ==============
-
     sim_strt_year = 2001
 
     fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
@@ -67,10 +68,8 @@ def generate_rothc_wthr(form):
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
 
     last_time = time()
-    fobj = open(join(no_wrthr_list_fn, 'w'))
 
-
-    aoi_res = _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, max_cells)
+    aoi_res = _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, exstng_no_wrthr_coords, max_cells)
 
     # main loop
     # =========
@@ -119,6 +118,7 @@ def generate_rothc_wthr(form):
             if len(retcode) == 0:
                 mess = '\n' + WARNING_STR + 'no weather data'
                 print(mess + ' for site with lat: {}\tlon: {}'.format(round(lat, 3), round(lon, 3)))
+                new_no_wrthr_coords.append([round(lat, 5), lat_indx, lon, lon_indx, grid_coord])
                 nnodata += 1
                 continue
             else:
@@ -137,9 +137,26 @@ def generate_rothc_wthr(form):
                                                 climgen, fut_lat_indx, fut_lon_indx, pettmp_hist)
         ncmpltd += 1
 
+    _append_no_weather_file(no_wrthr_list_fn, new_no_wrthr_coords)
+
     mess = '\nCompleted weather generation  - number of sets completed: {}'.format(ncmpltd)
     mess += '\tskipped: {}\tno data: {}'.format(nskipped, nnodata)
     print(mess + '\tout of bounds: {}\n'.format(noutbnds))
+
+    return
+
+def _append_no_weather_file(no_wrthr_list_fn, new_no_wrthr_coords):
+    """
+    append no weather file
+    """
+    n_new_wthr = len(new_no_wrthr_coords)
+    if n_new_wthr > 0:
+        fobj = open(no_wrthr_list_fn, 'a', newline='')
+        wrtr = writer(fobj, delimiter=',')
+        for rec in new_no_wrthr_coords:
+            wrtr.writerow(rec)
+        fobj.close()
+        print('Wrote {} new no weather grid cells to: '.format(n_new_wthr) + no_wrthr_list_fn)
 
     return
 
@@ -275,7 +292,7 @@ def _generate_file_names(out_dirs, grid_coord, fut_or_hist):
 
     return wthr_fnames, skip_flag
 
-def _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, max_cells):
+def _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, exstng_no_wrthr_coords, max_cells):
     """
     SOC file is lat=618, lon=1440 = 889,920 grid cells  Masked: 652,432     with value: 227,210
     """
@@ -304,6 +321,10 @@ def _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, max_cells):
                 nmasked += 1
             else:
                 grid_coord = '{0:0=4g}_{1:0=4g}'.format(lon_indx, lat_indx)
+                if grid_coord in exstng_no_wrthr_coords:
+                    nskipped += 1
+                    continue
+
                 wthr_fut_fns, fut_skip_flag = _generate_file_names(out_dirs, grid_coord, 'fut')
                 wthr_hist_fns, hist_skip_flag = _generate_file_names(out_dirs, grid_coord, 'hist')
                 if fut_skip_flag and hist_skip_flag:
@@ -416,13 +437,22 @@ def _make_output_dirs():
         if not exists(out_dirs[ctgry]):
             mkdir(out_dirs[ctgry])
 
-    # create no weather data file
-    # ===========================
+    # create or read no weather data file
+    # ===================================
     no_wrthr_list_fn = join(out_dir, 'no_wthr_list.csv')
-    if not exists(no_wrthr_list_fn):
-        Path(no_wrthr_list_fn).touch()
+    if exists(no_wrthr_list_fn):
+        fobj = open(no_wrthr_list_fn, 'r', newline='')
+        rdr = reader(fobj, delimiter=',')
+        grid_coords = [row[-1] for row in rdr]
+        fobj.close()
 
-    return  out_dirs, no_wrthr_list_fn
+    else:
+        Path(no_wrthr_list_fn).touch()
+        grid_coords = []
+
+    print('Read {} no weather grid cells from: '.format(len(grid_coords)) + no_wrthr_list_fn)
+
+    return  out_dirs, no_wrthr_list_fn, grid_coords
 
 def _fetch_wrld_clim_indices(climgen, bbox):
     """
