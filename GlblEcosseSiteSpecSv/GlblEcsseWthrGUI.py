@@ -332,7 +332,15 @@ class Form(QWidget):
         grid.addWidget(w_abandon, irow, icol)
         self.w_abandon = w_abandon
 
-        icol += 3
+        icol += 1
+        w_read_all = QCheckBox('Read all')
+        helpText = 'Read entirity of weather sets'
+        w_read_all.setToolTip(helpText)
+        w_read_all.setFixedWidth(WDGT_SIZE_100)
+        grid.addWidget(w_read_all, irow, icol)
+        self.w_read_all = w_read_all
+
+        icol += 2
         w_chck_wthr = QPushButton('Check Weather')
         helpText = 'Check weather'
         w_chck_wthr.setToolTip(helpText)

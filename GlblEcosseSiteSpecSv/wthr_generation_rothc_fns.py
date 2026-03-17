@@ -38,6 +38,33 @@ METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
 NMETRICS = len(METRIC_LIST)
 
+def _read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets, fut_start_indx=0):
+    """
+    get precipitation and temperature data for all times
+    """
+    wthr_slices = {}
+    for period in ['hist', 'fut']:
+        wthr_slices[period] = {}
+
+    for metric in list(['precip', 'tas']):
+
+        # history datasets
+        # ===============
+        t1 = time()
+        print('Reading historic data for metric ' + metric)
+        varname = climgen.hist_wthr_set_defn[metric]
+        wthr_slices['hist'][metric] = hist_wthr_dsets[metric].variables[varname][:, :, :]
+        t2 = time()
+        print('Time taken: {}'.format(int(t2 -t1)) + ' for metric: ' + metric)
+
+        print('Reading future data for metric ' + metric)
+        varname = climgen.fut_wthr_set_defn[metric]
+        wthr_slices['fut'][metric] = fut_wthr_dsets[metric].variables[varname][:, :, :]
+        t3 = time()
+        print('Time taken: {}'.format(int(t3 - t2)) + ' for metric: ' + metric)
+
+    return
+
 def generate_rothc_wthr(form):
     """
     called from GUI; based on generate_banded_sims from HoliSoilsSpGlEc project
@@ -47,9 +74,7 @@ def generate_rothc_wthr(form):
     out_dirs, no_wrthr_list_fn, exstng_no_wrthr_coords = _make_output_dirs()
     new_no_wrthr_coords = []
     max_cells = int(form.w_max_cells.text())
-    org_soil_defn = _read_soil_organic_detail(form)
-    if org_soil_defn is None:
-        return
+    read_all_flag = form.w_read_all.isChecked()
 
     # weather choice
     # ==============
@@ -67,6 +92,12 @@ def generate_rothc_wthr(form):
     nlons = len(climgen.fut_wthr_set_defn['longitudes'])
 
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
+    if read_all_flag:
+        wthr_slices = _read_all_wthr_dsets(hist_wthr_dsets, fut_wthr_dsets)
+
+    org_soil_defn = _read_soil_organic_detail(form)
+    if org_soil_defn is None:
+        return
 
     aoi_res = _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, exstng_no_wrthr_coords, max_cells)
 

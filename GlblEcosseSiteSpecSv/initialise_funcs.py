@@ -51,7 +51,7 @@ MIN_GUI_LIST = ['strt1801Flag', 'bbox', 'regionIndx', 'yearFrom', 'wthrRsrce', '
 
 CMN_GUI_LIST = ['cruStrtYr', 'cruEndYr', 'climScnr', 'futStrtYr', 'futEndYr', 'cropIndx', 'gridResol', 'eqilMode']
 
-ROTHC_KEYS = ['prjDir', 'latStep',  'startBand', 'endBand']
+ROTHC_KEYS = ['prjDir', 'latStep',  'startBand', 'endBand', 'readAllWthrFlag']
 
 sleepTime = 5
 
@@ -770,8 +770,10 @@ def read_wthr_config_file(form):
             if key in ROTHC_KEYS:
                 if key == 'prjDir':
                     config[grp][key] = ''
+                elif key == 'readAllWthrFlag':
+                    config[grp][key] = False
                 else:
-                    config[grp][key] = 0
+                    config[grp][key] = None
             else:
                 mess = ERROR_STR + 'attribute {} required for group {} '.format(key, grp)
                 print(mess + 'in config file:\n\t{}'.format(config_file))
@@ -877,6 +879,7 @@ def _write_dflt_wthr_cnfg_file(config_file):
     _default_config = {
         'minGUI': {
             'allRegionsFlag': False,
+            'readAllWthrFlag': False,
             'strt1801Flag': False,
             'bbox': bbox_default,
             'latStep': 0,
@@ -939,6 +942,7 @@ def write_wthr_config_file(form):
         },
         'minGUI': {
             'allRegionsFlag': form.w_all_regions.isChecked(),
+            'readAllWthrFlag': form.w_read_all.isChecked(),
             'strt1801Flag': form.w_strt_1801.isChecked(),
             'autoRunEcFlag': form.w_auto_run_ec.isChecked(),
             'prjDir': form.w_prj_dir.text(),
