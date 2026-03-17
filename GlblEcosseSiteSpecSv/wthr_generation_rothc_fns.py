@@ -48,6 +48,8 @@ def generate_rothc_wthr(form):
     new_no_wrthr_coords = []
     max_cells = int(form.w_max_cells.text())
     org_soil_defn = _read_soil_organic_detail(form)
+    if org_soil_defn is None:
+        return
 
     # weather choice
     # ==============
@@ -64,19 +66,18 @@ def generate_rothc_wthr(form):
     nlats = len(climgen.fut_wthr_set_defn['latitudes'])
     nlons = len(climgen.fut_wthr_set_defn['longitudes'])
 
-    fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
-
-    last_time = time()
 
     aoi_res = _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, exstng_no_wrthr_coords, max_cells)
 
     # main loop
     # =========
     nskipped, nnodata, ncmpltd, noutbnds = 4*[0]
+    last_time = time()
+
     for site_rec in aoi_res:
         last_time, cancel_flag = update_wthr_rothc_progress(last_time,
-                                                             noutbnds, nnodata, ncmpltd, nskipped, form.w_abandon)
+                                    noutbnds, nnodata, ncmpltd, nskipped, form.w_abandon)
         if cancel_flag:
             print(WARNING_STR + '\nCancelling run')
             break
