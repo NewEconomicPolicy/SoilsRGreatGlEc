@@ -13,7 +13,7 @@ __version__ = '0.0.1'
 __author__ = 's03mm5'
 
 from os import mkdir
-from os.path import isdir, join, exists, lexists, normpath
+from os.path import isdir, join, exists, lexists, normpath, split
 from pathlib import Path
 from numpy.ma import is_masked
 from netCDF4 import Dataset
@@ -197,6 +197,10 @@ def _make_rthc_files(wthr_fnames, lat, lat_indx, lon, lon_indx,
     """
     write a RothC weather dataset
     """
+    out_dir = split(wthr_fnames['pet'])[0]
+    if not isdir(out_dir):
+        mkdir(out_dir)
+
     hdr_recs = _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx, fut_flag)
     frst_rec, period, soc_lctn_rec, wthr_lctn_rec, grid_ref_rec = hdr_recs
 
@@ -301,9 +305,6 @@ def _generate_file_names(out_dirs, grid_coord, fut_or_hist):
     nexist = 0
 
     out_dir = join(out_dirs[fut_or_hist], grid_coord)
-    if not isdir(out_dir):
-        mkdir(out_dir)
-
     for metric in METRIC_LIST:
         wthr_fname = metric + '_' + grid_coord + '.txt'
         wthr_fnames[metric] = join(out_dir, wthr_fname)
