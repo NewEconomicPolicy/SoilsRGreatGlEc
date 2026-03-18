@@ -793,6 +793,7 @@ def read_wthr_config_file(form):
     form.w_end_band.setText(str(end_band))
 
     strt_1801_flag = config[grp]['strt1801Flag']
+    read_all_flag = config[grp]['readAllWthrFlag']
     form.setup['bbox'] = config[grp]['bbox']
 
     max_cells = config[grp]['maxCells']
@@ -867,6 +868,11 @@ def read_wthr_config_file(form):
         form.w_strt_1801.setCheckState(2)
     else:
         form.w_strt_1801.setCheckState(0)
+
+    if read_all_flag:
+        form.w_read_all.setCheckState(2)
+    else:
+        form.w_read_all.setCheckState(0)
 
     return True
 

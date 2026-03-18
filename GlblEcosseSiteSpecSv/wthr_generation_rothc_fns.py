@@ -13,7 +13,7 @@ __version__ = '0.0.1'
 __author__ = 's03mm5'
 
 from os import mkdir
-from os.path import split, join, exists, lexists, normpath
+from os.path import isdir, join, exists, lexists, normpath
 from pathlib import Path
 from numpy.ma import is_masked
 from netCDF4 import Dataset
@@ -21,6 +21,7 @@ from csv import writer, reader
 from time import time
 from PyQt5.QtWidgets import QApplication
 
+from wthr_generation_misc_fns import read_all_wthr_dsets, fetch_WrldClim_sngl_data, fetch_WrldClim_area_data
 from getClimGenNC import ClimGenNC
 from getClimGenFns import (fetch_WrldClim_data, fetch_WrldClim_NC_data, associate_climate,
                            open_wthr_NC_sets, get_wthr_nc_coords, join_hist_fut_to_sim_wthr)
@@ -38,32 +39,6 @@ METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
 NMETRICS = len(METRIC_LIST)
 
-def _read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets, fut_start_indx=0):
-    """
-    get precipitation and temperature data for all times
-    """
-    wthr_slices = {}
-    for period in ['hist', 'fut']:
-        wthr_slices[period] = {}
-
-    for metric in list(['precip', 'tas']):
-
-        # history datasets
-        # ===============
-        t1 = time()
-        print('Reading historic data for metric ' + metric)
-        varname = climgen.hist_wthr_set_defn[metric]
-        wthr_slices['hist'][metric] = hist_wthr_dsets[metric].variables[varname][:, :, :]
-        t2 = time()
-        print('Time taken: {}'.format(int(t2 -t1)) + ' for metric: ' + metric)
-
-        print('Reading future data for metric ' + metric)
-        varname = climgen.fut_wthr_set_defn[metric]
-        wthr_slices['fut'][metric] = fut_wthr_dsets[metric].variables[varname][:, :, :]
-        t3 = time()
-        print('Time taken: {}'.format(int(t3 - t2)) + ' for metric: ' + metric)
-
-    return
 
 def generate_rothc_wthr(form):
     """
@@ -93,7 +68,7 @@ def generate_rothc_wthr(form):
 
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
     if read_all_flag:
-        wthr_slices = _read_all_wthr_dsets(hist_wthr_dsets, fut_wthr_dsets)
+        wthr_slices = read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets)
 
     org_soil_defn = _read_soil_organic_detail(form)
     if org_soil_defn is None:
@@ -123,18 +98,24 @@ def generate_rothc_wthr(form):
             noutbnds += 1
             continue
 
-        lat_wthr = climgen.fut_wthr_set_defn['latitudes'][fut_lat_indx]
-        lon_wthr = climgen.fut_wthr_set_defn['longitudes'][fut_lon_indx]
-
         # Get future and historic weather data
         # ====================================
-        pettmp_hist = fetch_WrldClim_data(form.lgr, lat, lon, climgen, hist_wthr_dsets,
-                                                            hist_lat_indx, hist_lon_indx, hist_flag=True)
+        if read_all_flag:
+            pettmp_hist = fetch_WrldClim_sngl_data(form.lgr, lat, lon, wthr_slices['hist'],
+                                                   hist_lat_indx, hist_lon_indx, hist_flag=True)
+        else:
+            pettmp_hist = fetch_WrldClim_data(form.lgr, lat, lon, climgen, hist_wthr_dsets,
+                                                hist_lat_indx, hist_lon_indx, hist_flag=True)
         if pettmp_hist is None:
             pettmp_fut = None
         else:
-            pettmp_fut = fetch_WrldClim_data(form.lgr, lat, lon, climgen, fut_wthr_dsets,
+            if read_all_flag:
+                pettmp_fut = fetch_WrldClim_sngl_data(form.lgr, lat, lon, wthr_slices['fut'],
                                                                                 fut_lat_indx, fut_lon_indx)
+            else:
+                pettmp_fut = fetch_WrldClim_data(form.lgr, lat, lon, climgen, fut_wthr_dsets,
+                                                                                fut_lat_indx, fut_lon_indx)
+
         # no weather for this grid cell - so look at adjacent weather cells
         ' ================================================================='
         if pettmp_fut is None or pettmp_hist is None:
@@ -143,8 +124,13 @@ def generate_rothc_wthr(form):
             # =================================
             nextnsn = 5
             wrld_clim_indices = _fetch_wthr_search_indices(fut_lat_indx, nlats, fut_lon_indx, nlons, nextnsn)
-            pettmp_hist = fetch_WrldClim_NC_data(form.lgr, wrld_clim_indices, climgen, hist_wthr_dsets)
-            pettmp_fut = fetch_WrldClim_NC_data(form.lgr, wrld_clim_indices, climgen, fut_wthr_dsets)
+            if read_all_flag:
+                pettmp_hist = fetch_WrldClim_area_data(form.lgr, wrld_clim_indices, climgen, wthr_slices['hist'])
+                pettmp_fut = fetch_WrldClim_area_data(form.lgr, wrld_clim_indices, climgen, wthr_slices['fut'])
+            else:
+                pettmp_hist = fetch_WrldClim_NC_data(form.lgr, wrld_clim_indices, climgen, hist_wthr_dsets)
+                pettmp_fut = fetch_WrldClim_NC_data(form.lgr, wrld_clim_indices, climgen, fut_wthr_dsets)
+
             site_rec_frig = (lat_indx, lon_indx, lat, lon)
             retcode = associate_climate(site_rec_frig, climgen, pettmp_hist, pettmp_fut, report_flag=False)
             if len(retcode) == 0:
@@ -212,7 +198,7 @@ def _make_rthc_files(wthr_fnames, lat, lat_indx, lon, lon_indx,
     write a RothC weather dataset
     """
     hdr_recs = _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wthr_indx, fut_flag)
-    frst_rec, period, location_rec, box_rec, grid_ref_rec = hdr_recs
+    frst_rec, period, soc_lctn_rec, wthr_lctn_rec, grid_ref_rec = hdr_recs
 
     for metric in METRIC_LIST:
         metric_descr = METRIC_DESCRIPS[metric]
@@ -227,8 +213,8 @@ def _make_rthc_files(wthr_fnames, lat, lat_indx, lon, lon_indx,
             fobj.write(frst_rec)
             fobj.write('\n.' + metric_descr)
             fobj.write('\nPeriod=' + period + ' Variable=.' + metric)
-            fobj.write('\n' + location_rec)
-            fobj.write('\n' + box_rec)
+            fobj.write('\n' + soc_lctn_rec)
+            fobj.write('\n' + wthr_lctn_rec)
             fobj.write('\n' + grid_ref_rec)
             for data_rec in data_recs:
                 fobj.write('\n' + data_rec)
@@ -276,13 +262,18 @@ def _fetch_hdr_recs(lat, lat_indx, lon, lon_indx, climgen, lat_wthr_indx, lon_wt
         # period = str(climgen.hist_start_year) + '-' + str(climgen.hist_end_year)
         period = str(1901) + '-' + str(2000)    # TODO - requires improvemnt
 
-    location_rec = '[Long= ' + str(round(lon, 3)) + ', ' + str(round(lon_wthr_indx, 3))
-    location_rec += '] [Lati= ' + str(round(lat, 3)) + ', ' + str(round(lat_wthr_indx))
-    location_rec +=  '] [Grid X,Y= ' + str(lon_indx) + ', ' + str(lat_indx) + ']'
-    box_rec = '[Boxes=   31143] [Years=' + period + '] [Multi=    0.1000] [Missing=-999]'
+    soc_lctn_rec = 'SOC Long= ' + str(round(lon, 3)) + '\tLat= ' + str(round(lat, 3))
+    soc_lctn_rec += '\tGrid X,Y= ' + str(lon_indx) + ', ' + str(lat_indx)
+
+    lat_wthr = climgen.fut_wthr_set_defn['latitudes'][lat_wthr_indx]
+    lon_wthr = climgen.fut_wthr_set_defn['longitudes'][lon_wthr_indx]
+
+    wthr_lctn_rec = 'Weather Long= ' + str(round(lon_wthr, 3)) + '\tLat= ' + str(round(lat_wthr, 3))
+    wthr_lctn_rec += '\tGrid X,Y= ' + str(lon_wthr_indx) + ', ' + str(lat_wthr_indx)
+
     grid_ref_rec = 'Grid-ref=' + '{0:' '=4g},{1:' '=4g}'.format(lon_indx, lat_indx)
 
-    return (frst_rec, period, location_rec, box_rec, grid_ref_rec)
+    return (frst_rec, period, soc_lctn_rec, wthr_lctn_rec, grid_ref_rec)
 
 def _generate_data_recs(pettmp):
     """
@@ -308,9 +299,14 @@ def _generate_file_names(out_dirs, grid_coord, fut_or_hist):
     skip_flag = False
     wthr_fnames = {}
     nexist = 0
+
+    out_dir = join(out_dirs[fut_or_hist], grid_coord)
+    if not isdir(out_dir):
+        mkdir(out_dir)
+
     for metric in METRIC_LIST:
         wthr_fname = metric + '_' + grid_coord + '.txt'
-        wthr_fnames[metric] = join(out_dirs[fut_or_hist], wthr_fname)
+        wthr_fnames[metric] = join(out_dir, wthr_fname)
 
         # potentially skip existing files
         # ===============================
