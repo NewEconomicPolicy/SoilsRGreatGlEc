@@ -25,6 +25,7 @@ from shape_funcs import format_bbox, calculate_area
 
 from wthr_generation_fns import generate_all_weather
 from wthr_generation_rothc_fns import generate_rothc_wthr
+from wthr_generation_misc_fns import clean_empty_dirs
 
 WARNING_STR = '*** Warning *** '
 
@@ -340,7 +341,15 @@ class Form(QWidget):
         grid.addWidget(w_read_all, irow, icol)
         self.w_read_all = w_read_all
 
-        icol += 2
+        icol += 1
+        w_del_dirs = QPushButton('Clean directories')
+        helpText = 'Remove empty directories'
+        w_del_dirs.setToolTip(helpText)
+        w_del_dirs.setFixedWidth(WDGT_SIZE_100)
+        grid.addWidget(w_del_dirs, irow, icol)
+        w_del_dirs.clicked.connect(self.cleanDirsClicked)
+
+        icol += 1
         w_chck_wthr = QPushButton('Check Weather')
         helpText = 'Check weather'
         w_chck_wthr.setToolTip(helpText)
@@ -381,6 +390,14 @@ class Form(QWidget):
         Check soc file
         """
         # check_soc_file(self)
+
+        return
+
+    def cleanDirsClicked(self):
+        """
+        C
+        """
+        clean_empty_dirs(self)
 
         return
 

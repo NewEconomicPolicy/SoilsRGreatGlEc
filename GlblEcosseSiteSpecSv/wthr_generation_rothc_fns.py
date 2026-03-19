@@ -46,7 +46,7 @@ def generate_rothc_wthr(form):
     GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
     """
     form.w_abandon.setCheckState(0)
-    out_dirs, no_wrthr_list_fn, exstng_no_wrthr_coords = _make_output_dirs()
+    out_dirs, no_wrthr_list_fn, exstng_no_wrthr_coords = _make_output_dirs(form)
     new_no_wrthr_coords = []
     max_cells = int(form.w_max_cells.text())
     read_all_flag = form.w_read_all.isChecked()
@@ -451,14 +451,16 @@ def _fetch_soil_org_nc_parms(nc_fname):
 
     return soil_org_rsrc
 
-def _make_output_dirs():
+def _make_output_dirs(form):
     """
     if necessary create output directories and no weather data file
-    """
     out_dir = 'E:\\Saeed\\outputs'
+    """
+    out_dir = form.setup['out_dir']
     if not exists(out_dir):
         mkdir(out_dir)
     print('\nWill write Rothc climate data to: ' + out_dir)
+    form.setup['out_dir'] = out_dir
 
     out_dirs = {}
     for ctgry in ['fut', 'hist']:

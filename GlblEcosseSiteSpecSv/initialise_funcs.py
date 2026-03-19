@@ -782,6 +782,8 @@ def read_wthr_config_file(form):
 
     prj_dir = config[grp]['prjDir']
     form.w_prj_dir.setText(prj_dir)
+    form.setup['prj_dir'] = prj_dir
+    form.setup['out_dir'] = join(prj_dir, 'outputs')
 
     lat_step = config[grp]['latStep']
     form.w_lat_step.setText(str(lat_step))

@@ -12,6 +12,8 @@ __prog__ = 'wthr_generation_rothc_fns'
 __version__ = '0.0.1'
 __author__ = 's03mm5'
 
+from os import listdir, rmdir
+from os.path import join, isdir
 from numpy.ma.core import MaskedConstant, MaskError
 from warnings import filterwarnings
 from time import time
@@ -32,6 +34,30 @@ WARNING_STR = '*** Warning *** '
 
 METRIC_LIST = list(['precip', 'tas'])
 PERIOD_LIST = list(['hist', 'fut'])
+
+def clean_empty_dirs(form):
+    """
+    Remove empty directories
+    """
+    print('\n')
+    out_dir = form.setup['out_dir']
+    for period in PERIOD_LIST:
+        period_dir = join(out_dir, period)
+
+        nremoved, ndirs = 2 * [0]
+        fns = listdir(period_dir)
+        for fn in fns:
+            this_dir = join(period_dir, fn)
+            if isdir(this_dir):
+                ndirs += 1
+                nfiles = len(listdir(this_dir))
+                if nfiles == 0:
+                    rmdir(this_dir)
+                    nremoved += 1
+
+        print('Checked {} directories and removed {} empty ones from '.format(ndirs, nremoved) + period_dir)
+
+    return
 
 def read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets):
     """
