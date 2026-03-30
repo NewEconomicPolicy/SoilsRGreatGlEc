@@ -25,6 +25,7 @@ from shape_funcs import format_bbox, calculate_area
 
 from wthr_generation_fns import generate_all_weather
 from wthr_generation_rothc_fns import generate_rothc_wthr
+from wthr_generation_mscnfr_fns import generate_mscnfr_wthr
 from wthr_generation_misc_fns import clean_empty_dirs
 
 WARNING_STR = '*** Warning *** '
@@ -131,7 +132,6 @@ class Form(QWidget):
         for region in self.regions:
             w_combo00a.addItem(region)
         w_combo00a.setFixedWidth(WDGT_SIZE_140)
-        w_combo00a.setEnabled(False)
         grid.addWidget(w_combo00a, irow, 1)
         w_combo00a.currentIndexChanged[str].connect(self.changeRegion)
         self.w_combo00a = w_combo00a
@@ -299,15 +299,24 @@ class Form(QWidget):
         # ============
         irow += 1
         icol = 0
-        w_wthr_only = QPushButton('Create weather')
-        helpText = 'Generate weather only'
+        w_wthr_only = QPushButton('ECOSSE weather')
+        helpText = 'Generate ECOSSE weather'
         w_wthr_only.setToolTip(helpText)
         w_wthr_only.setEnabled(True)
         grid.addWidget(w_wthr_only, irow, icol)
         w_wthr_only.clicked.connect(self.gnrtWthrClicked)
         self.w_wthr_only = w_wthr_only
 
-        icol += 2
+        icol += 1
+        w_mscnfr_wthr = QPushButton('Mscnfr wthr')
+        helpText = 'Generate Miscanfor weathrer'
+        w_mscnfr_wthr.setToolTip(helpText)
+        w_mscnfr_wthr.setFixedWidth(WDGT_SIZE_100)
+        w_mscnfr_wthr.setEnabled(True)
+        grid.addWidget(w_mscnfr_wthr, irow, icol)
+        w_mscnfr_wthr.clicked.connect(self.gnrtMscnfrWthrClicked)
+
+        icol += 1
         w_chck_soc = QPushButton('Check soc')
         helpText = 'Check soc file'
         w_chck_soc.setToolTip(helpText)
@@ -398,6 +407,14 @@ class Form(QWidget):
         C
         """
         clean_empty_dirs(self)
+
+        return
+
+    def gnrtMscnfrWthrClicked(self):
+        """
+        generate weather for all regions, scenarios and GCMs
+        """
+        generate_mscnfr_wthr(self)
 
         return
 
