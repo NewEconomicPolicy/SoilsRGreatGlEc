@@ -12,28 +12,246 @@ __prog__ = 'wthr_generation_rothc_fns'
 __version__ = '0.0.1'
 __author__ = 's03mm5'
 
-from os import listdir, rmdir
-from os.path import join, isdir
+from os import listdir, rmdir, makedirs
+from os.path import join, isdir, exists, split
 from numpy.ma.core import MaskedConstant, MaskError
 from warnings import filterwarnings
 from time import time
-from sys import stdout
-from PyQt5.QtWidgets import QApplication
+from netCDF4 import Dataset
+from numpy import array
+from time import strftime, sleep
+from _datetime import datetime
+from numpy import arange
+
+from getClimGenNC import ClimGenNC
+from getClimGenFns import open_wthr_NC_sets
 
 from getClimGenFns import update_fetch_progress
-
-ERROR_STR = '*** Error *** '
-WARNING = '*** Warning *** '
 
 NULL_VALUE = -9999
 GRANULARITY = 120
 
-
 ERROR_STR = '*** Error *** '
 WARNING_STR = '*** Warning *** '
 
-METRIC_LIST = list(['precip', 'tas'])
-PERIOD_LIST = list(['hist', 'fut'])
+MISSING_VALUE = -999.0
+METRIC_LIST = ['precip', 'tas']
+PERIOD_LIST = ['hist', 'fut']
+ALL_METRICS = ['prec','tave']
+METRIC_VARNAMES = {'precip': 'prec', 'tas': 'tave'}
+
+def wldclim_dset_resize(form):
+    """
+    called from GUI;
+    """
+    this_gcm = form.w_combo10w.currentText()
+    scnr = form.w_combo10.currentText()
+
+    # weather choice
+    # ==============
+    sim_strt_year = 2001
+
+    fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
+    sim_end_year = form.wthr_sets[fut_wthr_set]['year_end']
+
+    region, crop_name = 2 * [None]
+    climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
+
+    _make_resize_dirs(climgen, this_gcm, scnr)
+
+    for metric in METRIC_LIST:
+        clone_fn = climgen.fut_wthr_set_defn['ds_' + metric]
+        out_fn = climgen.fut_wthr_set_defn['ds_05_' + metric]
+        _create_new_nc(clone_fn, out_fn, METRIC_VARNAMES[metric], strt_yr=None, nmnths=None)
+
+        clone_fn = climgen.fut_wthr_set_defn['ds_' + metric]
+        out_fn = climgen.fut_wthr_set_defn['ds_05_' + metric]
+        _create_new_nc(clone_fn, out_fn, METRIC_VARNAMES[metric], strt_yr=None, nmnths=None)
+
+    nlats = len(climgen.fut_wthr_set_defn['latitudes'])
+    nlons = len(climgen.fut_wthr_set_defn['longitudes'])
+
+    hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
+    wthr_slices = read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets)
+
+    return
+
+def _create_new_nc(clone_fn, out_fn, metric, strt_yr=None, nmnths=None):
+    """
+    create new NC file and copy contents of clone to same
+    """
+    if metric not in ALL_METRICS:
+        print(WARNING_STR + 'Metric must be in ' + str(ALL_METRICS))
+        return None
+
+    if strt_yr is None:
+        time_dmnsn_flag = False     # time dimension flag
+    else:
+        time_dmnsn_flag = True
+
+    print('\ncreating new dataset: ' + out_fn)
+    try:
+        nc_dset = Dataset(out_fn, 'w', format='NETCDF4_CLASSIC')
+    except PermissionError as err:
+        print(err)
+        return None
+
+    clone_dset = Dataset(clone_fn, 'r')
+    nlats = clone_dset.variables['lat'].size
+    lats = array(clone_dset.variables['lat'])
+    resol_lat = (lats[-1] - lats[0]) / (lats.size - 1)
+
+    nlons = clone_dset.variables['lon'].size
+    lons = array(clone_dset.variables['lon'])
+    resol_lon = (lons[-1] - lons[0]) / (lons.size - 1)
+
+    # create global attributes
+    # ========================
+    date_stamp = strftime('%H:%M %d-%m-%Y')
+    nc_dset.attributation = 'Created at ' + date_stamp + ' from WorldClim global climate data'
+    nc_dset.history = 'XXXX'
+
+    # setup time dimension - assume daily
+    # ===================================
+    mess = 'Number of longitudes: {}\tlatitudes: {}'.format(nlons, nlats)
+    if time_dmnsn_flag:
+        atimes, atimes_strt, atimes_end = _generate_mnthly_atimes(strt_yr, nmnths)  # create ndarrays
+        mess += '\tmonths: {}'.format(nmnths)
+
+    print(mess)
+
+    # create dimensions
+    # =================
+    nc_dset.createDimension('lat', nlats)
+    nc_dset.createDimension('lon', nlons)
+    if time_dmnsn_flag:
+        nc_dset.createDimension('time', len(atimes))
+        nc_dset.createDimension('bnds', 2)
+
+    # create the variable (4 byte float in this case)
+    # createVariable method has arguments:
+    #   first: name of the , second: datatype, third: tuple with the name (s) of the dimension(s).
+    # ===================================
+    lats_var = nc_dset.createVariable('lat', 'f4', ('lat',))
+    lats_var.description = 'degrees of latitude North to South in ' + str(resol_lat) + ' degree steps'
+    lats_var.units = 'degrees_north'
+    lats_var.long_name = 'latitude'
+    lats_var.axis = 'Y'
+    lats_var[:] = lats
+
+    lons_var = nc_dset.createVariable('lon', 'f4', ('lon',))
+    lons_var.description = 'degrees of longitude West to East in ' + str(resol_lon) + ' degree steps'
+    lons_var.units = 'degrees_east'
+    lons_var.long_name = 'longitude'
+    lons_var.axis = 'X'
+    lons_var[:] = lons
+
+    times = nc_dset.createVariable('time', 'f4', ('time',))
+    times.units = 'days since 1900-01-01'
+    times.calendar = 'standard'
+    times.axis = 'T'
+    times.bounds = 'time_bnds'
+    times[:] = atimes
+
+    # create time_bnds variable
+    # =========================
+    time_bnds = nc_dset.createVariable('time_bnds', 'f4', ('time', 'bnds'), fill_value=MISSING_VALUE)
+    time_bnds._ChunkSizes = 1, 2
+    time_bnds[:, 0] = atimes_strt
+    time_bnds[:, 1] = atimes_end
+
+    # create the time dependent metrics and assign default data
+    # =========================================================
+    var_metric = nc_dset.createVariable(metric, 'f4', ('time', 'lat', 'lon'), fill_value=MISSING_VALUE)
+    if metric == 'prec':
+        var_metric.units = 'mm'
+        var_metric.long_name = 'Total precipitation'
+    elif metric == 'tmax':
+        var_metric.units = 'Degrees C'
+        var_metric.long_name = 'Average maximum temperature'
+    elif metric == 'tmin':
+        var_metric.units = 'Degrees C'
+        var_metric.long_name = 'Average minimum temperature'
+    elif metric == 'tave':
+        var_metric.units = 'Degrees C'
+        var_metric.long_name = 'Average temperature'
+    elif metric == 'srad':
+        var_metric.units = 'kJ m-2 day-1'
+        var_metric.long_name = 'Solar radiation'
+    elif metric == 'wind':
+        var_metric.units = 'm s-1'
+        var_metric.long_name = 'Wind speed'
+
+    # var_metric.alignment = clone_dset.variables['Band1'].alignment
+    var_metric.missing_value = MISSING_VALUE
+
+    # close netCDF files
+    # ================
+    nc_dset.sync()
+    nc_dset.close()
+    clone_dset.close()
+
+    return out_fn
+
+def _make_resize_dirs(climgen, this_gcm, scnr):
+    """
+    make new directories for o.5 derees datasets
+    """
+    base_dir_fut = climgen.fut_wthr_set_defn['base_dir']
+    base_05_fut = base_dir_fut.replace('WrldClim_', 'WrldClim_05_')
+    if not exists(base_05_fut):
+        makedirs(base_05_fut)
+    climgen.fut_wthr_set_defn['base_05_fut'] = base_05_fut
+
+    ds_precip_shrt = split(climgen.fut_wthr_set_defn['ds_precip'])[1]
+    climgen.fut_wthr_set_defn['ds_05_precip'] = join(base_05_fut, ds_precip_shrt.replace('10m', '30m'))
+    ds_tas_shrt = split(climgen.fut_wthr_set_defn['ds_tas'])[1]
+    climgen.fut_wthr_set_defn['ds_05_tas'] = join(base_05_fut, ds_tas_shrt.replace('10m', '30m'))
+
+    base_dir_hist = climgen.hist_wthr_set_defn['base_dir']
+    base_05_hist = base_dir_hist.replace('WrldClim_', 'WrldClim_05_')
+    if not exists(base_05_hist):
+        makedirs(base_05_hist)
+    climgen.hist_wthr_set_defn['base_05_hist'] = base_05_hist
+
+    ds_precip_shrt = split(climgen.hist_wthr_set_defn['ds_precip'])[1]
+    climgen.hist_wthr_set_defn['ds_05_precip'] = join(base_05_hist, ds_precip_shrt.replace('10m', '30m'))
+    ds_tas_shrt = split(climgen.hist_wthr_set_defn['ds_tas'])[1]
+    climgen.hist_wthr_set_defn['ds_05_tas'] = join(base_05_hist, ds_tas_shrt.replace('10m', '30m'))
+
+    return
+
+def _generate_mnthly_atimes(fut_start_year, num_months):
+    """
+    expect 1092 for 91 years plus 2 extras for 40 and 90 year differences
+    """
+
+    atimes = arange(num_months)     # create ndarray
+    atimes_strt = arange(num_months)
+    atimes_end  = arange(num_months)
+
+    date_1900 = datetime(1900, 1, 1, 12, 0)
+    imnth = 1
+    year = fut_start_year
+    prev_delta_days = -999
+    for indx in arange(num_months + 1):
+        date_this = datetime(year, imnth, 1, 12, 0)
+        delta = date_this - date_1900   # days since 1900-01-01
+
+        # add half number of days in this month to the day of the start of the month
+        # ==========================================================================
+        if indx > 0:
+            atimes[indx-1] = prev_delta_days + int((delta.days - prev_delta_days)/2)
+            atimes_strt[indx-1] = prev_delta_days
+            atimes_end[indx-1] =  delta.days - 1
+
+        prev_delta_days = delta.days
+        imnth += 1
+        if imnth > 12:
+            imnth = 1
+            year += 1
+
+    return atimes, atimes_strt, atimes_end
 
 def clean_empty_dirs(form):
     """

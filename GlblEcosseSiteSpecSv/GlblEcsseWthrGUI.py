@@ -26,7 +26,7 @@ from shape_funcs import format_bbox, calculate_area
 from wthr_generation_fns import generate_all_weather
 from wthr_generation_rothc_fns import generate_rothc_wthr
 from wthr_generation_mscnfr_fns import generate_mscnfr_wthr
-from wthr_generation_misc_fns import clean_empty_dirs
+from wthr_generation_misc_fns import clean_empty_dirs, wldclim_dset_resize
 
 WARNING_STR = '*** Warning *** '
 
@@ -307,16 +307,7 @@ class Form(QWidget):
         w_wthr_only.clicked.connect(self.gnrtWthrClicked)
         self.w_wthr_only = w_wthr_only
 
-        icol += 1
-        w_mscnfr_wthr = QPushButton('Mscnfr wthr')
-        helpText = 'Generate Miscanfor weathrer'
-        w_mscnfr_wthr.setToolTip(helpText)
-        w_mscnfr_wthr.setFixedWidth(WDGT_SIZE_100)
-        w_mscnfr_wthr.setEnabled(True)
-        grid.addWidget(w_mscnfr_wthr, irow, icol)
-        w_mscnfr_wthr.clicked.connect(self.gnrtMscnfrWthrClicked)
-
-        icol += 1
+        icol += 2
         w_chck_soc = QPushButton('Check soc')
         helpText = 'Check soc file'
         w_chck_soc.setToolTip(helpText)
@@ -366,6 +357,27 @@ class Form(QWidget):
         grid.addWidget(w_chck_wthr, irow, icol)
         w_chck_wthr.clicked.connect(self.checkWthrClicked)
 
+        # test actions
+        # ============
+        irow += 1
+        icol = 0
+        w_mscnfr_wthr = QPushButton('Mscnfr wthr')
+        helpText = 'Generate Miscanfor weather'
+        w_mscnfr_wthr.setToolTip(helpText)
+        w_mscnfr_wthr.setFixedWidth(WDGT_SIZE_100)
+        w_mscnfr_wthr.setEnabled(True)
+        grid.addWidget(w_mscnfr_wthr, irow, icol)
+        w_mscnfr_wthr.clicked.connect(self.gnrtMscnfrWthrClicked)
+
+        icol += 1
+        w_dset_resize = QPushButton('Dset resize')
+        helpText = 'Resize WorldClim NCs to 0.5 degree resolution'
+        w_dset_resize.setToolTip(helpText)
+        w_dset_resize.setFixedWidth(WDGT_SIZE_100)
+        w_dset_resize.setEnabled(True)
+        grid.addWidget(w_dset_resize, irow, icol)
+        w_dset_resize.clicked.connect(self.dsetResizeClicked)
+
         # Layout this window
         # ==================
         rh_vbox.addLayout(grid)     # add grid to RH vertical box
@@ -385,6 +397,14 @@ class Form(QWidget):
         self.w_ur_lon.textChanged[str].connect(self.bboxTextChanged)
 
         self.changeRegion()  # populates lat/long boxes
+
+    def dsetResizeClicked(self):
+        """
+        Resize WorldClim NCs
+        """
+        wldclim_dset_resize(self)
+
+        return
 
     def fetchPrjDir(self):
         #

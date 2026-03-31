@@ -39,7 +39,6 @@ METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
 NMETRICS = len(METRIC_LIST)
 
-
 def generate_mscnfr_wthr(form):
     """
     called from GUI; based on generate_banded_sims from HoliSoilsSpGlEc project
