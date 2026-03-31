@@ -69,16 +69,19 @@ def generate_mscnfr_wthr(form):
     if read_all_flag:
         wthr_slices = read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets)
 
+    org_soil_defn = _read_soil_organic_detail(form)
+    if org_soil_defn is None:
+        return
+
+    aoi_res = _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, exstng_no_wrthr_coords, max_cells)
+
     # main loop
     # =========
     nskipped, nnodata, ncmpltd, noutbnds = 4*[0]
     last_time = time()
 
-    org_soil_defn = None
-    aoi_res = _fetch_grid_cells_from_aoi(org_soil_defn, out_dirs, exstng_no_wrthr_coords, max_cells)
-
     for site_rec in aoi_res:
-        last_time, cancel_flag = update_wthr_rothc_progress(last_time,
+        last_time, cancel_flag = update_wthr_mscnfr_progress(last_time,
                                     noutbnds, nnodata, ncmpltd, nskipped, form.w_abandon)
         if cancel_flag:
             print(WARNING_STR + '\nCancelling run')
@@ -191,7 +194,7 @@ def _fetch_wthr_search_indices(lat_indx, nlats, lon_indx, nlons, nextnsn):
 def _make_rthc_files(wthr_fnames, lat, lat_indx, lon, lon_indx,
                      climgen, lat_wthr_indx, lon_wthr_indx, pettmp, fut_flag=False):
     """
-    write a RothC weather dataset
+    write a mscnfr weather dataset
     """
     out_dir = split(wthr_fnames['pet'])[0]
     if not isdir(out_dir):
@@ -317,16 +320,9 @@ def _generate_file_names(out_dirs, grid_coord, fut_or_hist):
 
     return wthr_fnames, skip_flag
 
-def _fetch_grid_cells_from_aoi(org_soil_defn, out_dirs, exstng_no_wrthr_coords, max_cells):
+def _fetch_grid_cells_from_socnc(org_soil_defn, out_dirs, exstng_no_wrthr_coords, max_cells):
     """
-    three methods for generating site_recs, use:
-        1) one of six predefined world regions - use 0.5 deg resol
-        2) a user defined AOI - use variable resol
-        3) a HWSD_csv file comprising a country e.g. Germany_hwsd.csv or set of countries e.g. EU_association_hwsd.csv
-            - use 10 arc minutes resol
-
-    arguments:
-            method, resolution, aoi_extent, hwsd_csv_fn, max_cells
+    SOC file is lat=618, lon=1440 = 889,920 grid cells  Masked: 652,432     with value: 227,210
     """
     START_FROM = 138000
 
@@ -341,7 +337,7 @@ def _fetch_grid_cells_from_aoi(org_soil_defn, out_dirs, exstng_no_wrthr_coords, 
         lat = lat.item()
 
         for lon_indx, lon in enumerate(soc_dset.variables['lon']):
-            last_time = update_soc_rothc_progress(last_time, nmasked, ncmpltd, nskipped, icount)
+            last_time = update_soc_mscnfr_progress(last_time, nmasked, ncmpltd, nskipped, icount)
             icount += 1
             if icount < START_FROM:
                 continue
@@ -462,7 +458,7 @@ def _make_output_dirs(form):
     out_dir = form.setup['out_dir']
     if not exists(out_dir):
         mkdir(out_dir)
-    print('\nWill write Rothc climate data to: ' + out_dir)
+    print('\nWill write mscnfr climate data to: ' + out_dir)
     form.setup['out_dir'] = out_dir
 
     out_dirs = {}

@@ -44,29 +44,34 @@ def wldclim_dset_resize(form):
     """
     called from GUI;
     """
-    this_gcm = form.w_combo10w.currentText()
-    scnr = form.w_combo10.currentText()
 
     # weather choice
     # ==============
-    sim_strt_year = 2001
+    scnr = form.w_combo10.currentText()
+    this_gcm = form.w_combo10w.currentText()
 
-    fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
-    sim_end_year = form.wthr_sets[fut_wthr_set]['year_end']
+    fut_strt_year = form.wthr_sets[this_gcm + '_' + scnr]['year_start']
+    fut_end_year = form.wthr_sets[this_gcm + '_' + scnr]['year_end']
+    nmnths_fut = 12 * (fut_end_year - fut_strt_year + 1)
+
+    hist_wthr_set = 'WrldClim_hist'
+    hist_strt_year = form.wthr_sets[hist_wthr_set]['year_start']
+    hist_end_year = form.wthr_sets[hist_wthr_set]['year_end']
+    nmnths_hist = 12 * (hist_end_year - hist_strt_year + 1)
 
     region, crop_name = 2 * [None]
-    climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
+    climgen = ClimGenNC(form, region, crop_name, fut_strt_year, fut_end_year, this_gcm, scnr)
 
     _make_resize_dirs(climgen, this_gcm, scnr)
 
     for metric in METRIC_LIST:
         clone_fn = climgen.fut_wthr_set_defn['ds_' + metric]
         out_fn = climgen.fut_wthr_set_defn['ds_05_' + metric]
-        _create_new_nc(clone_fn, out_fn, METRIC_VARNAMES[metric], strt_yr=None, nmnths=None)
+        _create_resize_nc(clone_fn, out_fn, METRIC_VARNAMES[metric], fut_strt_year, nmnths_fut)
 
         clone_fn = climgen.fut_wthr_set_defn['ds_' + metric]
         out_fn = climgen.fut_wthr_set_defn['ds_05_' + metric]
-        _create_new_nc(clone_fn, out_fn, METRIC_VARNAMES[metric], strt_yr=None, nmnths=None)
+        _create_resize_nc(clone_fn, out_fn, METRIC_VARNAMES[metric], hist_strt_year, nmnths_hist)
 
     nlats = len(climgen.fut_wthr_set_defn['latitudes'])
     nlons = len(climgen.fut_wthr_set_defn['longitudes'])
@@ -76,7 +81,7 @@ def wldclim_dset_resize(form):
 
     return
 
-def _create_new_nc(clone_fn, out_fn, metric, strt_yr=None, nmnths=None):
+def _create_resize_nc(clone_fn, out_fn, metric, strt_yr=None, nmnths=None):
     """
     create new NC file and copy contents of clone to same
     """
@@ -101,9 +106,17 @@ def _create_new_nc(clone_fn, out_fn, metric, strt_yr=None, nmnths=None):
     lats = array(clone_dset.variables['lat'])
     resol_lat = (lats[-1] - lats[0]) / (lats.size - 1)
 
+    new_lats = []
+    for ic in range(1, nlats, 3):
+        new_lats.append(lats[ic])
+
     nlons = clone_dset.variables['lon'].size
     lons = array(clone_dset.variables['lon'])
     resol_lon = (lons[-1] - lons[0]) / (lons.size - 1)
+
+    new_lons = []
+    for ic in range(1, nlons, 3):
+        new_lons.append(lons[ic])
 
     # create global attributes
     # ========================
@@ -122,8 +135,8 @@ def _create_new_nc(clone_fn, out_fn, metric, strt_yr=None, nmnths=None):
 
     # create dimensions
     # =================
-    nc_dset.createDimension('lat', nlats)
-    nc_dset.createDimension('lon', nlons)
+    nc_dset.createDimension('lat', len(new_lats))
+    nc_dset.createDimension('lon', len(new_lons))
     if time_dmnsn_flag:
         nc_dset.createDimension('time', len(atimes))
         nc_dset.createDimension('bnds', 2)
@@ -137,14 +150,14 @@ def _create_new_nc(clone_fn, out_fn, metric, strt_yr=None, nmnths=None):
     lats_var.units = 'degrees_north'
     lats_var.long_name = 'latitude'
     lats_var.axis = 'Y'
-    lats_var[:] = lats
+    lats_var[:] = new_lats
 
     lons_var = nc_dset.createVariable('lon', 'f4', ('lon',))
     lons_var.description = 'degrees of longitude West to East in ' + str(resol_lon) + ' degree steps'
     lons_var.units = 'degrees_east'
     lons_var.long_name = 'longitude'
     lons_var.axis = 'X'
-    lons_var[:] = lons
+    lons_var[:] = new_lons
 
     times = nc_dset.createVariable('time', 'f4', ('time',))
     times.units = 'days since 1900-01-01'
