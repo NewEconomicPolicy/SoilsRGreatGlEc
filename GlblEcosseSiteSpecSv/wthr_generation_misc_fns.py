@@ -68,6 +68,17 @@ def read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets):
     """
     get precipitation and temperature data for all times
     """
+    strt_yr = 1981
+    end_yr = 2080
+
+    strt_yr_hist = climgen.hist_wthr_set_defn['year_start']
+    end_yr_hist = climgen.hist_wthr_set_defn['year_end']
+    strt_indx_hist = (strt_yr - strt_yr_hist) * 12
+
+    strt_yr_fut = climgen.fut_wthr_set_defn['year_start']
+    strt_indx_fut = (end_yr_hist - strt_yr_fut + 1) * 12
+    end_indx_fut = (end_yr - strt_yr_fut + 1) * 12
+
     wthr_slices = {}
     for period in PERIOD_LIST:
         wthr_slices[period] = {}
@@ -79,13 +90,13 @@ def read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets):
         t1 = time()
         print('Reading historic data for metric ' + metric)
         varname = climgen.hist_wthr_set_defn[metric]
-        wthr_slices['hist'][metric] = hist_wthr_dsets[metric].variables[varname][:, :, :]
+        wthr_slices['hist'][metric] = hist_wthr_dsets[metric].variables[varname][strt_indx_hist:, :, :]
         t2 = time()
         print('Time taken: {}'.format(int(t2 -t1)) + ' for metric: ' + metric)
 
         print('Reading future data for metric ' + metric)
         varname = climgen.fut_wthr_set_defn[metric]
-        wthr_slices['fut'][metric] = fut_wthr_dsets[metric].variables[varname][:, :, :]
+        wthr_slices['fut'][metric] = fut_wthr_dsets[metric].variables[varname][strt_indx_fut:end_indx_fut, :, :]
         t3 = time()
         print('Time taken: {}'.format(int(t3 - t2)) + ' for metric: ' + metric)
 

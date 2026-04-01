@@ -90,6 +90,8 @@ def generate_mscnfr_wthr(form):
             for period in PERIOD_LIST:
                 pettmp[period] = {}
                 for metric in METRIC_LIST:
+                    if metric == 'pet':
+                        continue
                     pettmp[period][metric] = wthr_slices[period][metric][:, lat_indx, lon_indx]
 
             # write data
