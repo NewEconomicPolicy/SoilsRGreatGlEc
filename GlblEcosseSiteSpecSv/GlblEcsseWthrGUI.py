@@ -374,7 +374,7 @@ class Form(QWidget):
         helpText = 'Resize WorldClim NCs to 0.5 degree resolution'
         w_dset_resize.setToolTip(helpText)
         w_dset_resize.setFixedWidth(WDGT_SIZE_100)
-        w_dset_resize.setEnabled(True)
+        w_dset_resize.setEnabled(False)
         grid.addWidget(w_dset_resize, irow, icol)
         w_dset_resize.clicked.connect(self.dsetResizeClicked)
 
