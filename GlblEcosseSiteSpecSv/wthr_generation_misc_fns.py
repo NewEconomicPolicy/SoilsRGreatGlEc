@@ -14,14 +14,15 @@ __author__ = 's03mm5'
 
 from os import listdir, rmdir, makedirs
 from os.path import join, isdir, exists, split
+
+from numpy import array, arange
 from numpy.ma.core import MaskedConstant, MaskError
-from warnings import filterwarnings
-from time import time
+from numpy.ma import concatenate
 from netCDF4 import Dataset
-from numpy import array
-from time import strftime, sleep
+
+from warnings import filterwarnings
+from time import time, strftime, sleep
 from _datetime import datetime
-from numpy import arange
 
 from getClimGenNC import ClimGenNC
 from getClimGenFns import open_wthr_NC_sets
@@ -83,6 +84,7 @@ def read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets):
     for period in PERIOD_LIST:
         wthr_slices[period] = {}
 
+    slices_concat = {}
     for metric in METRIC_LIST:
 
         # history datasets
@@ -100,7 +102,11 @@ def read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets):
         t3 = time()
         print('Time taken: {}'.format(int(t3 - t2)) + ' for metric: ' + metric)
 
-    return wthr_slices
+        slices_concat[metric] = concatenate([wthr_slices['hist'][metric], wthr_slices['fut'][metric]], axis=0)
+
+    ntime_steps = slices_concat[metric].shape[0]
+
+    return slices_concat, ntime_steps
 
 def fetch_WrldClim_sngl_data(lgr, lat, lon, wthr_slices, lat_indx, lon_indx, hist_flag=False):
     """

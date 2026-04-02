@@ -34,7 +34,7 @@ WARNING_STR = '*** Warning *** '
 GRANULARITY = 120
 
 PERIOD_LIST = ['hist', 'fut']
-METRIC_LIST = list(['precip', 'tas', 'pet'])
+METRIC_LIST = list(['precip', 'tas'])
 METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
                     'pet': 'pet = potential evapotranspiration [mm/month]',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
@@ -47,7 +47,6 @@ def generate_mscnfr_wthr(form):
     """
     form.w_abandon.setCheckState(0)
     max_cells = int(form.w_max_cells.text())
-    read_all_flag = form.w_read_all.isChecked()
 
     # weather choice
     # ==============
@@ -59,68 +58,84 @@ def generate_mscnfr_wthr(form):
     this_gcm = form.w_combo10w.currentText()
     scnr =  form.w_combo10.currentText()
 
-    region, crop_name = 2 * [None]
+    region = 'World'
+    crop_name = None
     climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
     nlats = len(climgen.fut_wthr_set_defn['latitudes'])
     nlons = len(climgen.fut_wthr_set_defn['longitudes'])
 
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
-    if read_all_flag:
-        wthr_slices = read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets)
+    wthr_slices, ntime_steps = read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets)
 
     mess = 'Will generate {} csv files consisting of metrics'.format(len(METRIC_LIST))
     print(mess + ' and a meteogrid file consisting of grid coordinates')
 
     lat_min, lat_max = 2*[None]
-    var_names = ['precip', 'tas']
     output_dir = 'G:\\MscnfrOutpts\\WorldClim'
-    miscan_fobjs, writers = _open_csv_file_sets(var_names, output_dir, lat_min, lat_max)
+    miscan_fobjs, writers = _open_csv_file_sets(METRIC_LIST + ['meteogrid'], output_dir, lat_min, lat_max)
 
     # for each location, where there is data, build set of data
     # =========================================================
-    num_nodata, num_with_data = 2*[0]
+    n_nodata, n_with_data, ntotal = 3*[0]
     last_time = time()
     for lat_indx in range(1, nlats, 3):
         lat = climgen.fut_wthr_set_defn['latitudes'][lat_indx]
 
         for lon_indx in range(1, nlons, 3):
-            pettmp = {}
             lon = climgen.fut_wthr_set_defn['longitudes'][lon_indx]
 
-            for period in PERIOD_LIST:
-                pettmp[period] = {}
-                for metric in METRIC_LIST:
-                    if metric == 'pet':
-                        continue
-                    pettmp[period][metric] = wthr_slices[period][metric][:, lat_indx, lon_indx]
+            pettmp, data_flag = _fetch_wthr_data(wthr_slices, lat_indx, lon_indx)
 
             # write data
             # ==========
-            if pettmp == None:
-                num_nodata += 1
-            else:
-                num_with_data += 1
+            if data_flag:
+                n_with_data += 1
                 pettmp['meteogrid'] = list([lon, lat])
-                write_mscnfr_out(pettmp, writers, num_time_steps)
-                if num_with_data >= max_cells:
+                write_mscnfr_out(pettmp, writers, ntime_steps)
+                if n_with_data >= max_cells:
                     break
+            else:
+                n_nodata += 1
 
-            if num_with_data >= max_cells:
-                last_time = update_wthr_progress(last_time, num_nodata, num_with_data, num_total, lat, lon)
+            if n_with_data >= max_cells:
+                last_time = update_wthr_progress(last_time, n_with_data, n_nodata, ntotal, ntotal, ntotal, region)
                 break
 
         # close netCDF and csv files
         # ==========================
-    for var_name in var_names:
+    for var_name in METRIC_LIST:
         miscan_fobjs[var_name].close()
 
     print('\nAll done...')
 
     return
 
+def _fetch_wthr_data(wthr_slices, lat_indx, lon_indx):
+
+    """
+    check each metric and if data is not present then return
+    """
+    pettmp_ret = {}
+    for metric in METRIC_LIST :
+        pettmp = wthr_slices[metric][:, lat_indx, lon_indx]
+
+        # check first 10 values
+        # =====================
+        data_flag = True
+        for timindx in range(10):
+            if is_masked(pettmp[timindx]):
+                data_flag = False
+                break
+
+        pettmp_ret[metric] = pettmp
+
+    return pettmp_ret, data_flag
+
 def _open_csv_file_sets(var_names, out_folder, lat_min, lat_max, lon_min = -180.0, lon_max = 180, grid_size = 0.5,
             start_year = 1901, stop_year = 2019, out_suff = '.txt', remove_flag = True):
-
+    """
+    write each variable to a separate file
+    """
     if not isdir(out_folder):
         print(out_folder + ' does not exist - please reselect output folder')
         return None, None
@@ -139,10 +154,9 @@ def _open_csv_file_sets(var_names, out_folder, lat_min, lat_max, lon_min = -180.
                            'tempmin': 'Tmin', 'tempmax': 'Tmax', 'wind': 'Wind',
                             'cld': 'cloud','dtr': 'temprange', 'tmp': 'temperature', 'pre': 'precip', 'pet': 'pet'})
     '''
-    miscan_fobjs = {}; writers = {}
-
     # for each file write header records
     # ==================================
+    miscan_fobjs = {}; writers = {}
     for var_name in var_names:
         file_name = join(out_folder, var_name + out_suff)
         if remove_flag:
@@ -178,7 +192,7 @@ def write_mscnfr_out(pettmp, writers, num_time_steps, meteogrid_flag = True):
         else:
             # other metrics are passed as an ndarray which we convert to an integers after times by 10
             # ========================================================================================
-            newlist = ['{:8d}'.format(int(10.0*val)) for val in pettmp[var_name]]
+            newlist = ['{:8d}'.format(int(10.0*val.item())) for val in pettmp[var_name]]
             for indx in range(0, num_time_steps, 12):
                 rec = ''.join(newlist[indx:indx + 12])
                 writers[var_name].writerow(list([rec]))
