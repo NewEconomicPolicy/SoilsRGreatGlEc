@@ -21,7 +21,7 @@ from csv import writer, reader
 from time import time
 from PyQt5.QtWidgets import QApplication
 
-from wthr_generation_misc_fns import read_all_wthr_dsets, fetch_WrldClim_sngl_data, fetch_WrldClim_area_data
+from wthr_generation_misc_fns import fetch_WrldClim_sngl_data, fetch_WrldClim_area_data, read_all_wthr_smpl_dsets
 from getClimGenNC import ClimGenNC
 from getClimGenFns import (fetch_WrldClim_data, fetch_WrldClim_NC_data, associate_climate,
                            open_wthr_NC_sets, get_wthr_nc_coords, join_hist_fut_to_sim_wthr)
@@ -67,7 +67,7 @@ def generate_rothc_wthr(form):
 
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
     if read_all_flag:
-        wthr_slices = read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets)
+        wthr_slices = read_all_wthr_smpl_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets)
 
     org_soil_defn = _read_soil_organic_detail(form)
     if org_soil_defn is None:

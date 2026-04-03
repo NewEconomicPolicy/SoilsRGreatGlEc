@@ -65,6 +65,33 @@ def clean_empty_dirs(form):
 
     return
 
+def read_all_wthr_smpl_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets):
+    """
+    get precipitation and temperature data for all times
+    """
+    wthr_slices = {}
+    for period in PERIOD_LIST:
+        wthr_slices[period] = {}
+
+    for metric in METRIC_LIST:
+
+        # history datasets
+        # ===============
+        t1 = time()
+        print('Reading historic data for metric ' + metric)
+        varname = climgen.hist_wthr_set_defn[metric]
+        wthr_slices['hist'][metric] = hist_wthr_dsets[metric].variables[varname][:, :, :]
+        t2 = time()
+        print('Time taken: {}'.format(int(t2 -t1)) + ' for metric: ' + metric)
+
+        print('Reading future data for metric ' + metric)
+        varname = climgen.fut_wthr_set_defn[metric]
+        wthr_slices['fut'][metric] = fut_wthr_dsets[metric].variables[varname][:, :, :]
+        t3 = time()
+        print('Time taken: {}'.format(int(t3 - t2)) + ' for metric: ' + metric)
+
+    return wthr_slices
+
 def read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets):
     """
     get precipitation and temperature data for all times

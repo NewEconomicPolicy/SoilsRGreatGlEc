@@ -83,7 +83,7 @@ class Form(QWidget):
         w_prj_pb.clicked.connect(self.fetchPrjDir)
 
         w_prj_dir = QLabel('')
-        grid.addWidget(w_prj_dir, irow, 1, 1, 2)
+        grid.addWidget(w_prj_dir, irow, 1, 1, 3)
         self.w_prj_dir = w_prj_dir
 
         # define spatial extent of the output, typically:
