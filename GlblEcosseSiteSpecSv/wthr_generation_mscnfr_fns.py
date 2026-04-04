@@ -47,6 +47,9 @@ def generate_mscnfr_wthr(form):
     """
     form.w_abandon.setCheckState(0)
     max_cells = int(form.w_max_cells.text())
+    output_dir = form.w_out_dir.text()  # typically  G:\MscnfrOutpts\WorldClim'
+    strt_yr = form.w_sim_strt_yr.text()  # start and end year, typically 1981, 2080
+    end_yr = form.w_sim_end_yr.text()
 
     # weather choice
     # ==============
@@ -65,13 +68,12 @@ def generate_mscnfr_wthr(form):
     nlons = len(climgen.fut_wthr_set_defn['longitudes'])
 
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
-    wthr_slices, ntime_steps = read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets)
+    wthr_slices, ntime_steps = read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets, strt_yr, end_yr)
 
     mess = 'Will generate {} csv files consisting of metrics'.format(len(METRIC_LIST))
     print(mess + ' and a meteogrid file consisting of grid coordinates')
 
     lat_min, lat_max = 2*[None]
-    output_dir = 'G:\\MscnfrOutpts\\WorldClim'
     miscan_fobjs, writers = _open_csv_file_sets(METRIC_LIST + ['meteogrid'], output_dir, lat_min, lat_max)
 
     # for each location, where there is data, build set of data

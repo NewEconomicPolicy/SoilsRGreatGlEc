@@ -21,6 +21,7 @@ from PyQt5.QtWidgets import (QLabel, QWidget, QApplication, QHBoxLayout, QVBoxLa
 
 from initialise_funcs import (read_wthr_config_file, initiation, write_wthr_config_file)
 from commonCmpntsGUI import exit_clicked, commonSection, grid_coarseness, calculate_grid_cell
+from hwsd_mu_globals_fns import HWSD_mu_globals_csv
 from shape_funcs import format_bbox, calculate_area
 
 from wthr_generation_fns import generate_all_weather
@@ -71,51 +72,144 @@ class Form(QWidget):
         # The layout is done with the QGridLayout
         grid = QGridLayout()
         grid.setSpacing(10)	# set spacing between widgets
-        irow = 0
 
-        # directory must contain map of soil organic carbon GSOCmap_0.25.nc
-        # =================================================================
+        # Ecosse weather
+        # ==============
+        irow = 0
+        icol = 0
+        w_wthr_only = QPushButton('ECOSSE weather')
+        helpText = 'Generate ECOSSE weather'
+        w_wthr_only.setToolTip(helpText)
+        w_wthr_only.setEnabled(True)
+        grid.addWidget(w_wthr_only, irow, icol)
+        w_wthr_only.clicked.connect(self.gnrtWthrClicked)
+        self.w_wthr_only = w_wthr_only
+
+        # ======= spacer ========
+        irow += 1
+        grid.addWidget(QLabel(''), irow, 2)
+
+        # RothC weather
+        # =============
+        irow += 1
+        icol = 0
+        w_rothc_wthr = QPushButton('RothC wthr')
+        helpText = 'Generate RothC weathrer'
+        w_rothc_wthr.setToolTip(helpText)
+        w_rothc_wthr.setFixedWidth(WDGT_SIZE_100)
+        w_rothc_wthr.setEnabled(True)
+        grid.addWidget(w_rothc_wthr, irow, icol)
+        w_rothc_wthr.clicked.connect(self.gnrtRthCwthrClicked)
+
+        icol += 1
+        w_chck_soc = QPushButton('Check soc')
+        helpText = 'Check soc file'
+        w_chck_soc.setToolTip(helpText)
+        w_chck_soc.setFixedWidth(WDGT_SIZE_100)
+        w_chck_soc.setEnabled(True)
+        grid.addWidget(w_chck_soc, irow, icol)
+        w_chck_soc.clicked.connect(self.chckSocClicked)
+
+        icol += 1
         w_prj_pb = QPushButton("Project dir")
-        helpText = 'Directory to which weather files will written and must also\n'
+        helpText = 'Directory to which weather files will be written and must also\n'
         helpText += 'contain map of soil organic carbon GSOCmap_0.25.nc'
         w_prj_pb.setToolTip(helpText)
-        grid.addWidget(w_prj_pb, irow, 0)
+        grid.addWidget(w_prj_pb, irow, icol)
         w_prj_pb.clicked.connect(self.fetchPrjDir)
 
+        icol += 1
         w_prj_dir = QLabel('')
-        grid.addWidget(w_prj_dir, irow, 1, 1, 3)
+        grid.addWidget(w_prj_dir, irow, icol, 1, 3)
         self.w_prj_dir = w_prj_dir
 
-        # define spatial extent of the output, typically:
-        #   lat_step = 5.0; start_at_band = 0; end_at_band = 20
-        # =====================================================
+        # ======= spacer ========
         irow += 1
-        lbl02 = QLabel('Latitude step:')
+        grid.addWidget(QLabel(''), irow, 2)
+
+        # Miscanfor weather
+        # =================
+        irow += 1
+        icol = 0
+        w_mscnfr_wthr = QPushButton('Mscnfr wthr')
+        helpText = 'Generate Miscanfor weather'
+        w_mscnfr_wthr.setToolTip(helpText)
+        w_mscnfr_wthr.setFixedWidth(WDGT_SIZE_100)
+        w_mscnfr_wthr.setEnabled(True)
+        grid.addWidget(w_mscnfr_wthr, irow, icol)
+        w_mscnfr_wthr.clicked.connect(self.gnrtMscnfrWthrClicked)
+
+        icol += 1
+        w_dset_resize = QPushButton('Dset resize')
+        helpText = 'Resize WorldClim NCs to 0.5 degree resolution'
+        w_dset_resize.setToolTip(helpText)
+        w_dset_resize.setFixedWidth(WDGT_SIZE_100)
+        w_dset_resize.setEnabled(False)
+        grid.addWidget(w_dset_resize, irow, icol)
+        w_dset_resize.clicked.connect(self.dsetResizeClicked)
+
+        icol += 1
+        w_out_dir_pb = QPushButton("Output dir")
+        helpText = 'Directory to which weather files will be written'
+        w_out_dir_pb.setToolTip(helpText)
+        grid.addWidget(w_out_dir_pb, irow, icol)
+        w_out_dir_pb.clicked.connect(self.fetchOutDir)
+        grid.addWidget(w_out_dir_pb, irow, icol)
+
+        icol += 1
+        w_out_dir = QLabel('')
+        grid.addWidget(w_out_dir, irow, icol, 1, 3)
+        self.w_out_dir = w_out_dir
+
+        irow += 1
+        icol = 0
+        lbl02 = QLabel('Start year:')
         lbl02.setAlignment(Qt.AlignRight)
-        grid.addWidget(lbl02, irow, 0)
+        grid.addWidget(lbl02, irow, icol)
 
-        w_lat_step = QLineEdit()
-        w_lat_step.setFixedWidth(WDGT_SIZE_80)
-        grid.addWidget(w_lat_step, irow, 1)
-        self.w_lat_step = w_lat_step
+        icol += 1
+        w_sim_strt_yr = QLineEdit()
+        w_sim_strt_yr.setFixedWidth(WDGT_SIZE_80)
+        helpText = 'Start year for simulation'
+        w_sim_strt_yr.setToolTip(helpText)
+        grid.addWidget(w_sim_strt_yr, irow, icol)
+        self.w_sim_strt_yr = w_sim_strt_yr
 
-        lbl02 = QLabel('Start at band:')
+        icol += 1
+        lbl02 = QLabel('End year:')
         lbl02.setAlignment(Qt.AlignRight)
-        grid.addWidget(lbl02, irow, 2)
+        grid.addWidget(lbl02, irow, icol)
 
-        w_strt_band = QLineEdit()
-        w_strt_band.setFixedWidth(WDGT_SIZE_80)
-        grid.addWidget(w_strt_band, irow, 3)
-        self.w_strt_band = w_strt_band
+        icol += 1
+        w_sim_end_yr = QLineEdit()
+        w_sim_end_yr.setFixedWidth(WDGT_SIZE_80)
+        helpText = 'End year for simulation'
+        w_sim_end_yr.setToolTip(helpText)
+        grid.addWidget(w_sim_end_yr, irow, icol)
+        self.w_sim_end_yr = w_sim_end_yr
 
-        lbl02 = QLabel('End at band:')
-        lbl02.setAlignment(Qt.AlignRight)
-        grid.addWidget(lbl02, irow, 4)
+        # CSV file of gris cells
+        # ======================
+        irow += 1
+        w_use_csv_file = QPushButton("HWSD CSV file")
+        helpText = 'Option to enable user to select a CSV file comprising latitude, longitiude and HWSD mu_global.'
+        w_use_csv_file.setToolTip(helpText)
+        grid.addWidget(w_use_csv_file, irow, 1)
+        w_use_csv_file.clicked.connect(self.fetchCsvFile)
 
-        w_end_band = QLineEdit()
-        w_end_band.setFixedWidth(WDGT_SIZE_80)
-        grid.addWidget(w_end_band, irow, 5)
-        self.w_end_band = w_end_band
+        w_hwsd_fn = QLabel('')  # label for HWSD csv file name
+        grid.addWidget(w_hwsd_fn, irow, 2, 1, 5)
+        self.w_hwsd_fn = w_hwsd_fn
+
+        # HWSD AOI bounding box detail
+        # ============================
+        irow += 1
+        w_lbl07 = QLabel('HWSD bounding box:')
+        w_lbl07.setAlignment(Qt.AlignRight)
+        grid.addWidget(w_lbl07, irow, 0)
+
+        self.w_hwsd_bbox = QLabel('')
+        grid.addWidget(self.w_hwsd_bbox, irow, 2, 1, 5)
 
         # ======= spacer ========
         irow += 1
@@ -135,9 +229,6 @@ class Form(QWidget):
         grid.addWidget(w_combo00a, irow, 1)
         w_combo00a.currentIndexChanged[str].connect(self.changeRegion)
         self.w_combo00a = w_combo00a
-
-        w_combo00b = QComboBox()        # Crop
-        self.w_combo00b = w_combo00b
 
         # line 2 - Upper right lon/lat
         # ============================
@@ -189,9 +280,6 @@ class Form(QWidget):
         self.lbl03 = QLabel()
         grid.addWidget(self.lbl03, irow, 1, 1, 5)
 
-        w_equimode = QLineEdit()       # equilibrium mode
-        self.w_equimode = w_equimode
-
         # type of run options
         # ===================
         irow += 1
@@ -204,56 +292,38 @@ class Form(QWidget):
         w_max_cells = QLineEdit()
         w_max_cells.setText('')
         w_max_cells.setFixedWidth(WDGT_SIZE_80)
-        self.w_max_cells = w_max_cells
         grid.addWidget(w_max_cells, irow, 1)
+        self.w_max_cells = w_max_cells
 
-        w_all_regions = QCheckBox('All studies')
-        self.w_all_regions = w_all_regions
-
-        w_all_crops = QCheckBox('All crops')
-        self.w_all_crops = w_all_crops
-
-        # simplification options
-        # ======================
-        w_use_dom_soil = QCheckBox('Use most dominant soil')
-        self.w_use_dom_soil = w_use_dom_soil
-
-        w_use_high_cover = QCheckBox('Use highest coverage soil')
-        self.w_use_high_cover = w_use_high_cover
-
-        # line 6
-        # ======
-        irow += 1
         lbl06a = QLabel('Year from:')
         lbl06a.setAlignment(Qt.AlignRight)
         helpText = 'Year from which perennial crops are planted or use global N inputs e.g. 220\nset to -1 to disable'
         lbl06a.setToolTip(helpText)
-        grid.addWidget(lbl06a, irow, 0)
+        grid.addWidget(lbl06a, irow, 2)
 
         w_yr_from = QLineEdit()
         w_yr_from.setText('')
         w_yr_from.setToolTip(helpText)
         w_yr_from.setFixedWidth(WDGT_SIZE_80)
-        grid.addWidget(w_yr_from, irow, 1)
+        grid.addWidget(w_yr_from, irow, 3)
         self.w_yr_from = w_yr_from
 
-        w_glbl_n_inpts = QCheckBox('Use global N inputs')
-        self.w_glbl_n_inpts = w_glbl_n_inpts
-
-        w_use_peren = QCheckBox('Use perennial crops')
-        self.w_use_peren = w_use_peren
-
-        # dormant
-        # =======
-        w_daily = QRadioButton("Daily")
-        self.w_daily  = w_daily
-
-        w_mnthly = QRadioButton("Monthly")
-        self.w_mnthly = w_mnthly
+        # dormant widgets
+        # ===============
+        self.w_combo00b = QComboBox()
+        self.w_equimode = QLineEdit()
+        self.w_all_regions = QCheckBox('All studies')
+        self.w_all_crops = QCheckBox('All crops')
+        self.w_use_dom_soil = QCheckBox('Use most dominant soil')
+        self.w_use_high_cover = QCheckBox('Use highest coverage soil')
+        self.w_glbl_n_inpts = QCheckBox('Use global N inputs')
+        self.w_use_peren = QCheckBox('Use perennial crops')
+        self.w_daily  = QRadioButton("Daily")
+        self.w_mnthly = QRadioButton("Monthly")
 
         # weather resource and simulation period
         # ======================================
-        irow = 9
+        irow += 2
         irow = commonSection(self, grid, irow, WTHR_FLAG)
         irow = grid_coarseness(self, grid, irow)
 
@@ -298,34 +368,7 @@ class Form(QWidget):
         # test actions
         # ============
         irow += 1
-        icol = 0
-        w_wthr_only = QPushButton('ECOSSE weather')
-        helpText = 'Generate ECOSSE weather'
-        w_wthr_only.setToolTip(helpText)
-        w_wthr_only.setEnabled(True)
-        grid.addWidget(w_wthr_only, irow, icol)
-        w_wthr_only.clicked.connect(self.gnrtWthrClicked)
-        self.w_wthr_only = w_wthr_only
-
-        icol += 2
-        w_chck_soc = QPushButton('Check soc')
-        helpText = 'Check soc file'
-        w_chck_soc.setToolTip(helpText)
-        w_chck_soc.setFixedWidth(WDGT_SIZE_100)
-        w_chck_soc.setEnabled(True)
-        grid.addWidget(w_chck_soc, irow, icol)
-        w_chck_soc.clicked.connect(self.chckSocClicked)
-
-        icol += 1
-        w_rothc_wthr = QPushButton('RothC wthr')
-        helpText = 'Generate RothC weathrer'
-        w_rothc_wthr.setToolTip(helpText)
-        w_rothc_wthr.setFixedWidth(WDGT_SIZE_100)
-        w_rothc_wthr.setEnabled(True)
-        grid.addWidget(w_rothc_wthr, irow, icol)
-        w_rothc_wthr.clicked.connect(self.gnrtRthCwthrClicked)
-
-        icol += 1
+        icol = 3
         w_abandon = QCheckBox('Abandon')
         helpText = 'Abandon weather generation'
         w_abandon.setToolTip(helpText)
@@ -357,27 +400,6 @@ class Form(QWidget):
         grid.addWidget(w_chck_wthr, irow, icol)
         w_chck_wthr.clicked.connect(self.checkWthrClicked)
 
-        # test actions
-        # ============
-        irow += 1
-        icol = 0
-        w_mscnfr_wthr = QPushButton('Mscnfr wthr')
-        helpText = 'Generate Miscanfor weather'
-        w_mscnfr_wthr.setToolTip(helpText)
-        w_mscnfr_wthr.setFixedWidth(WDGT_SIZE_100)
-        w_mscnfr_wthr.setEnabled(True)
-        grid.addWidget(w_mscnfr_wthr, irow, icol)
-        w_mscnfr_wthr.clicked.connect(self.gnrtMscnfrWthrClicked)
-
-        icol += 1
-        w_dset_resize = QPushButton('Dset resize')
-        helpText = 'Resize WorldClim NCs to 0.5 degree resolution'
-        w_dset_resize.setToolTip(helpText)
-        w_dset_resize.setFixedWidth(WDGT_SIZE_100)
-        w_dset_resize.setEnabled(False)
-        grid.addWidget(w_dset_resize, irow, icol)
-        w_dset_resize.clicked.connect(self.dsetResizeClicked)
-
         # Layout this window
         # ==================
         rh_vbox.addLayout(grid)     # add grid to RH vertical box
@@ -406,8 +428,34 @@ class Form(QWidget):
 
         return
 
+    def fetchCsvFile(self):
+        """
+        QFileDialog returns a tuple for Python 3.5, 3.6
+        """
+        fname = self.w_hwsd_fn.text()
+        if fname == '':
+            fname = self.setup['weather_dir']
+        fname, dummy = QFileDialog.getOpenFileName(self, 'Open file', fname, 'CSV files (*.csv)')
+        if fname != '':
+            self.w_hwsd_fn.setText(fname)
+            self.hwsd_mu_globals = HWSD_mu_globals_csv(self, fname)
+            self.mu_global_list = self.hwsd_mu_globals.mu_global_list
+            self.w_hwsd_bbox.setText(self.hwsd_mu_globals.aoi_label)
+
+    def fetchOutDir(self):
+        """
+        C
+        """
+        fname = self.w_out_dir.text()
+        fname = QFileDialog.getExistingDirectory(self, 'Select directory', fname)
+        if fname != '':
+            fname = normpath(fname)
+            self.w_out_dir.setText(fname)
+
     def fetchPrjDir(self):
-        #
+        """
+        C
+        """
         fname = self.w_prj_dir.text()
         fname = QFileDialog.getExistingDirectory(self, 'Select directory', fname)
         if fname != '':

@@ -30,6 +30,7 @@ from glbl_ecsse_low_level_fns import check_cultiv_json_fname, check_rotation_jso
 from shape_funcs import format_bbox, calculate_area
 from weather_datasets_ltd_data import read_weather_dsets_detail, change_weather_resource, record_weather_settings
 from hwsd_bil import check_hwsd_integrity
+from hwsd_mu_globals_fns import HWSD_mu_globals_csv
 from mngmnt_fns_and_class import ManagementSet
 
 APPLIC_STR = 'glbl_ecss_site_spec_sv'
@@ -51,7 +52,7 @@ MIN_GUI_LIST = ['strt1801Flag', 'bbox', 'regionIndx', 'yearFrom', 'wthrRsrce', '
 
 CMN_GUI_LIST = ['cruStrtYr', 'cruEndYr', 'climScnr', 'futStrtYr', 'futEndYr', 'cropIndx', 'gridResol', 'eqilMode']
 
-ROTHC_KEYS = ['prjDir', 'latStep',  'startBand', 'endBand', 'readAllWthrFlag']
+ROTHC_KEYS = ['prjDir', 'outDir',  'simStrtYr', 'simEndYr', 'readAllWthrFlag', 'hwsdCsvFname']
 
 sleepTime = 5
 
@@ -772,6 +773,8 @@ def read_wthr_config_file(form):
                     config[grp][key] = ''
                 elif key == 'readAllWthrFlag':
                     config[grp][key] = False
+                elif key == 'hwsdCsvFname':
+                    config[grp][key] = ''
                 else:
                     config[grp][key] = None
             else:
@@ -780,19 +783,33 @@ def read_wthr_config_file(form):
                 sleep(sleepTime)
                 exit(0)
 
+    # reset widgets associated with the HWSD file
+    # ===========================================
+    hwsd_csv_fname = config[grp]['hwsdCsvFname']
+    if hwsd_csv_fname != '':
+        if isfile(hwsd_csv_fname):
+            # read CSV file using pandas and create obj
+            form.hwsd_mu_globals = HWSD_mu_globals_csv(form, hwsd_csv_fname)
+            form.w_hwsd_bbox.setText(form.hwsd_mu_globals.aoi_label)
+        else:
+            print('HWSD csv file ' + hwsd_csv_fname + ' does not exist')
+            hwsd_csv_fname = ''
+
+    if hwsd_csv_fname == '':
+        form.hwsd_mu_globals = None
+        form.w_hwsd_bbox.setText('')
+
+    form.w_hwsd_fn.setText(hwsd_csv_fname)
+
+    # =================
     prj_dir = config[grp]['prjDir']
     form.w_prj_dir.setText(prj_dir)
     form.setup['prj_dir'] = prj_dir
     form.setup['out_dir'] = join(prj_dir, 'outputs')
 
-    lat_step = config[grp]['latStep']
-    form.w_lat_step.setText(str(lat_step))
-
-    strt_band = config[grp]['startBand']
-    form.w_strt_band.setText(str(strt_band))
-
-    end_band = config[grp]['endBand']
-    form.w_end_band.setText(str(end_band))
+    form.w_out_dir.setText(config[grp]['outDir'])
+    form.w_sim_strt_yr.setText(str(config[grp]['simStrtYr']))
+    form.w_sim_end_yr.setText(str(config[grp]['simEndYr']))
 
     strt_1801_flag = config[grp]['strt1801Flag']
     read_all_flag = config[grp]['readAllWthrFlag']
@@ -890,9 +907,9 @@ def _write_dflt_wthr_cnfg_file(config_file):
             'readAllWthrFlag': False,
             'strt1801Flag': False,
             'bbox': bbox_default,
-            'latStep': 0,
-            'startBand': 0,
-            'endBand': 0,
+            'outDir': 0,
+            'simStrtYr': 0,
+            'simEndYr': 0,
             'daily_mode': True,
             'maxCells': 0,
             'regionIndx': 0,
@@ -955,10 +972,11 @@ def write_wthr_config_file(form):
             'autoRunEcFlag': form.w_auto_run_ec.isChecked(),
             'prjDir': form.w_prj_dir.text(),
             'bbox': form.setup['bbox'],
+            'hwsdCsvFname': form.w_hwsd_fn.text(),
             'maxCells': form.w_max_cells.text(),
-            'latStep': form.w_lat_step.text(),
-            'startBand': form.w_strt_band.text(),
-            'endBand': form.w_end_band.text(),
+            'outDir': form.w_out_dir.text(),
+            'simStrtYr': form.w_sim_strt_yr.text(),
+            'simEndYr': form.w_sim_end_yr.text(),
             'yearFrom': form.w_yr_from.text(),
             'regionIndx': form.w_combo00a.currentIndex(),
             'wthrRsrce': form.w_combo10w.currentText()

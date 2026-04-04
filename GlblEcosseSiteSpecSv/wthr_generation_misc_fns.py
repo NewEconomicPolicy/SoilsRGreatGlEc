@@ -92,13 +92,10 @@ def read_all_wthr_smpl_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets):
 
     return wthr_slices
 
-def read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets):
+def read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets, strt_yr = 1981, end_yr = 2080):
     """
     get precipitation and temperature data for all times
     """
-    strt_yr = 1981
-    end_yr = 2080
-
     strt_yr_hist = climgen.hist_wthr_set_defn['year_start']
     end_yr_hist = climgen.hist_wthr_set_defn['year_end']
     strt_indx_hist = (strt_yr - strt_yr_hist) * 12
