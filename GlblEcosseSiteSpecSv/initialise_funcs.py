@@ -52,7 +52,7 @@ MIN_GUI_LIST = ['strt1801Flag', 'bbox', 'regionIndx', 'yearFrom', 'wthrRsrce', '
 
 CMN_GUI_LIST = ['cruStrtYr', 'cruEndYr', 'climScnr', 'futStrtYr', 'futEndYr', 'cropIndx', 'gridResol', 'eqilMode']
 
-ROTHC_KEYS = ['prjDir', 'outDir',  'simStrtYr', 'simEndYr', 'readAllWthrFlag', 'hwsdCsvFname']
+ROTHC_KEYS = ['prjDir', 'outDir',  'simStrtYr', 'simEndYr', 'readAllWthrFlag', 'hwsdCsvFname', 'useHwsdFlag']
 
 sleepTime = 5
 
@@ -769,12 +769,8 @@ def read_wthr_config_file(form):
     for key in MIN_GUI_LIST +  ROTHC_KEYS:
         if key not in config[grp]:
             if key in ROTHC_KEYS:
-                if key == 'prjDir':
-                    config[grp][key] = ''
-                elif key == 'readAllWthrFlag':
-                    config[grp][key] = False
-                elif key == 'hwsdCsvFname':
-                    config[grp][key] = ''
+                if key == 'useHwsdFlag':
+                    config[grp][key] = True
                 else:
                     config[grp][key] = None
             else:
@@ -819,6 +815,8 @@ def read_wthr_config_file(form):
     all_regions = config[grp]['allRegionsFlag']
     yr_from = config[grp]['yearFrom']
     form.w_combo00a.setCurrentIndex(config[grp]['regionIndx'])
+
+    use_hwsd_flag = config[grp]['useHwsdFlag']
 
     wthr_rsrce = config[grp]['wthrRsrce']
     wthr_rsrce_indx = form.w_combo10w.findText(str(wthr_rsrce))
@@ -878,6 +876,11 @@ def read_wthr_config_file(form):
 
     # set check boxes
     # ===============
+    if use_hwsd_flag:
+        form.w_use_hwsd_fn.setCheckState(2)
+    else:
+        form.w_use_hwsd_fn.setCheckState(0)
+
     if all_regions:
         form.w_all_regions.setCheckState(2)
     else:
@@ -972,6 +975,7 @@ def write_wthr_config_file(form):
             'autoRunEcFlag': form.w_auto_run_ec.isChecked(),
             'prjDir': form.w_prj_dir.text(),
             'bbox': form.setup['bbox'],
+            'useHwsdFlag': form.w_use_hwsd_fn.isChecked(),
             'hwsdCsvFname': form.w_hwsd_fn.text(),
             'maxCells': form.w_max_cells.text(),
             'outDir': form.w_out_dir.text(),

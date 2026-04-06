@@ -13,7 +13,7 @@ __version__ = '0.0.1'
 __author__ = 's03mm5'
 
 from os import mkdir, remove
-from os.path import isdir, join, exists, lexists, normpath, split
+from os.path import isdir, join, exists, isfile
 from pathlib import Path
 from numpy.ma import is_masked
 from netCDF4 import Dataset
@@ -42,14 +42,13 @@ NMETRICS = len(METRIC_LIST)
 
 def generate_mscnfr_wthr(form):
     """
-    called from GUI; based on generate_banded_sims from HoliSoilsSpGlEc project
-    GSOCmap_0.25.nc organic carbon has latitiude extant of 83 degs N, 56 deg S
+    C
     """
     form.w_abandon.setCheckState(0)
     max_cells = int(form.w_max_cells.text())
     output_dir = form.w_out_dir.text()  # typically  G:\MscnfrOutpts\WorldClim'
-    strt_yr = form.w_sim_strt_yr.text()  # start and end year, typically 1981, 2080
-    end_yr = form.w_sim_end_yr.text()
+    strt_yr = int(form.w_sim_strt_yr.text())  # start and end year, typically 1981, 2080
+    end_yr = int(form.w_sim_end_yr.text())
 
     # weather choice
     # ==============
@@ -80,32 +79,43 @@ def generate_mscnfr_wthr(form):
     # =========================================================
     n_nodata, n_with_data, ntotal = 3*[0]
     last_time = time()
-    for lat_indx in range(1, nlats, 3):
-        lat = climgen.fut_wthr_set_defn['latitudes'][lat_indx]
+    if form.w_use_hwsd_fn.isChecked():
 
-        for lon_indx in range(1, nlons, 3):
-            lon = climgen.fut_wthr_set_defn['longitudes'][lon_indx]
+        # create 0.5 degree world data
+        # ============================
+        for lat_indx in range(1, nlats, 3):
+            lat = climgen.fut_wthr_set_defn['latitudes'][lat_indx]
 
-            pettmp, data_flag = _fetch_wthr_data(wthr_slices, lat_indx, lon_indx)
+            for lon_indx in range(1, nlons, 3):
+                lon = climgen.fut_wthr_set_defn['longitudes'][lon_indx]
 
-            # write data
-            # ==========
-            if data_flag:
-                n_with_data += 1
-                pettmp['meteogrid'] = list([lon, lat])
-                write_mscnfr_out(pettmp, writers, ntime_steps)
+                pettmp, data_flag = _fetch_wthr_data(wthr_slices, lat_indx, lon_indx)
+
+                # write data
+                # ==========
+                if data_flag:
+                    n_with_data += 1
+                    pettmp['meteogrid'] = list([lon, lat])
+                    write_mscnfr_out(pettmp, writers, ntime_steps)
+                    if n_with_data >= max_cells:
+                        break
+                else:
+                    n_nodata += 1
+
                 if n_with_data >= max_cells:
+                    last_time = update_wthr_progress(last_time, n_with_data, n_nodata, ntotal, ntotal, ntotal, region)
                     break
+        else:
+            # create 10 arc minute data
+            # =========================
+            if hasattr(form, 'hwsd_mu_globals'):
+                bbox = form.hwsd_mu_globals.bbox
             else:
-                n_nodata += 1
-
-            if n_with_data >= max_cells:
-                last_time = update_wthr_progress(last_time, n_with_data, n_nodata, ntotal, ntotal, ntotal, region)
-                break
+                print(WARNING_STR + 'No HWSD data available')
 
         # close netCDF and csv files
         # ==========================
-    for var_name in METRIC_LIST:
+    for var_name in METRIC_LIST + ['meteogrid']:
         miscan_fobjs[var_name].close()
 
     print('\nAll done...')
@@ -134,7 +144,7 @@ def _fetch_wthr_data(wthr_slices, lat_indx, lon_indx):
     return pettmp_ret, data_flag
 
 def _open_csv_file_sets(var_names, out_folder, lat_min, lat_max, lon_min = -180.0, lon_max = 180, grid_size = 0.5,
-            start_year = 1901, stop_year = 2019, out_suff = '.txt', remove_flag = True):
+            start_year = 1901, stop_year = 2019, out_suffx = '.txt', remove_flag = True):
     """
     write each variable to a separate file
     """
@@ -160,7 +170,7 @@ def _open_csv_file_sets(var_names, out_folder, lat_min, lat_max, lon_min = -180.
     # ==================================
     miscan_fobjs = {}; writers = {}
     for var_name in var_names:
-        file_name = join(out_folder, var_name + out_suff)
+        file_name = join(out_folder, var_name + out_suffx)
         if remove_flag:
             if exists(file_name):
                 remove(file_name)

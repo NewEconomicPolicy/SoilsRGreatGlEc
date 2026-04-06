@@ -16,8 +16,8 @@ from os import listdir
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import (QLabel, QWidget, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout, QLineEdit,
-                                                    QComboBox, QRadioButton,  QPushButton, QCheckBox, QFileDialog)
+from PyQt5.QtWidgets import (QLabel, QWidget, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout, QLineEdit, 
+                                            QCheckBox, QComboBox, QRadioButton,  QPushButton, QCheckBox, QFileDialog)
 
 from initialise_funcs import (read_wthr_config_file, initiation, write_wthr_config_file)
 from commonCmpntsGUI import exit_clicked, commonSection, grid_coarseness, calculate_grid_cell
@@ -27,7 +27,7 @@ from shape_funcs import format_bbox, calculate_area
 from wthr_generation_fns import generate_all_weather
 from wthr_generation_rothc_fns import generate_rothc_wthr
 from wthr_generation_mscnfr_fns import generate_mscnfr_wthr
-from wthr_generation_misc_fns import clean_empty_dirs, wldclim_dset_resize
+from wthr_generation_misc_fns import clean_empty_dirs
 
 WARNING_STR = '*** Warning *** '
 
@@ -131,7 +131,7 @@ class Form(QWidget):
         # =================
         irow += 1
         icol = 0
-        w_mscnfr_wthr = QPushButton('Mscnfr wthr')
+        w_mscnfr_wthr = QPushButton('Miscanfor wthr')
         helpText = 'Generate Miscanfor weather'
         w_mscnfr_wthr.setToolTip(helpText)
         w_mscnfr_wthr.setFixedWidth(WDGT_SIZE_100)
@@ -140,13 +140,11 @@ class Form(QWidget):
         w_mscnfr_wthr.clicked.connect(self.gnrtMscnfrWthrClicked)
 
         icol += 1
-        w_dset_resize = QPushButton('Dset resize')
-        helpText = 'Resize WorldClim NCs to 0.5 degree resolution'
-        w_dset_resize.setToolTip(helpText)
-        w_dset_resize.setFixedWidth(WDGT_SIZE_100)
-        w_dset_resize.setEnabled(False)
-        grid.addWidget(w_dset_resize, irow, icol)
-        w_dset_resize.clicked.connect(self.dsetResizeClicked)
+        w_use_hwsd_fn = QCheckBox('Use HWSD file')
+        helpText = 'Use HWSD file'
+        w_use_hwsd_fn.setToolTip(helpText)
+        grid.addWidget(w_use_hwsd_fn, irow, icol)
+        self.w_use_hwsd_fn = w_use_hwsd_fn
 
         icol += 1
         w_out_dir_pb = QPushButton("Output dir")
@@ -188,7 +186,7 @@ class Form(QWidget):
         grid.addWidget(w_sim_end_yr, irow, icol)
         self.w_sim_end_yr = w_sim_end_yr
 
-        # CSV file of gris cells
+        # CSV file of grid cells
         # ======================
         irow += 1
         w_use_csv_file = QPushButton("HWSD CSV file")
@@ -206,7 +204,7 @@ class Form(QWidget):
         irow += 1
         w_lbl07 = QLabel('HWSD bounding box:')
         w_lbl07.setAlignment(Qt.AlignRight)
-        grid.addWidget(w_lbl07, irow, 0)
+        grid.addWidget(w_lbl07, irow, 1)
 
         self.w_hwsd_bbox = QLabel('')
         grid.addWidget(self.w_hwsd_bbox, irow, 2, 1, 5)
@@ -420,14 +418,6 @@ class Form(QWidget):
 
         self.changeRegion()  # populates lat/long boxes
 
-    def dsetResizeClicked(self):
-        """
-        Resize WorldClim NCs
-        """
-        wldclim_dset_resize(self)
-
-        return
-
     def fetchCsvFile(self):
         """
         QFileDialog returns a tuple for Python 3.5, 3.6
@@ -480,7 +470,7 @@ class Form(QWidget):
 
     def gnrtMscnfrWthrClicked(self):
         """
-        generate weather for all regions, scenarios and GCMs
+        C
         """
         generate_mscnfr_wthr(self)
 
@@ -488,7 +478,7 @@ class Form(QWidget):
 
     def gnrtRthCwthrClicked(self):
         """
-        generate weather for all regions, scenarios and GCMs
+        C
         """
         generate_rothc_wthr(self)
 
