@@ -47,13 +47,22 @@ def generate_mscnfr_wthr(form):
     form.w_abandon.setCheckState(0)
     max_cells = int(form.w_max_cells.text())
     output_dir = form.w_out_dir.text()  # typically  G:\MscnfrOutpts\WorldClim'
-    strt_yr = int(form.w_sim_strt_yr.text())  # start and end year, typically 1981, 2080
-    end_yr = int(form.w_sim_end_yr.text())
+    if not isdir(output_dir) or output_dir == '':
+        print(WARNING_STR + 'Output directory to which weather files will be written must exist')
+        return
+
+    # start and end year, typically 1981 and, 2080
+    # ============================================
+    strt_yr = form.w_sim_strt_yr.text()
+    end_yr = form.w_sim_end_yr.text()
+    if strt_yr.isdecimal() and end_yr.isdecimal():
+        sim_strt_yr = int(strt_yr)
+        sim_end_yr = int(end_yr)
+    else:
+        sim_strt_yr, sim_end_yr = 1981, 2080
 
     # weather choice
     # ==============
-    sim_strt_year = 2001
-
     fut_wthr_set = form.weather_set_linkages['WrldClim'][1]
     sim_end_year = form.wthr_sets[fut_wthr_set]['year_end']
 
@@ -62,12 +71,12 @@ def generate_mscnfr_wthr(form):
 
     region = 'World'
     crop_name = None
-    climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
+    climgen = ClimGenNC(form, region, crop_name, sim_strt_yr, sim_end_year, this_gcm, scnr)
     nlats = len(climgen.fut_wthr_set_defn['latitudes'])
     nlons = len(climgen.fut_wthr_set_defn['longitudes'])
 
     hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
-    wthr_slices, ntime_steps = read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets, strt_yr, end_yr)
+    wthr_slices, ntime_steps = read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets, sim_strt_yr, sim_end_yr)
 
     mess = 'Will generate {} csv files consisting of metrics'.format(len(METRIC_LIST))
     print(mess + ' and a meteogrid file consisting of grid coordinates')
