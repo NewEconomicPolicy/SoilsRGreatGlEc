@@ -26,7 +26,7 @@ from shape_funcs import format_bbox, calculate_area
 
 from wthr_generation_fns import generate_all_weather
 from wthr_generation_rothc_fns import generate_rothc_wthr
-from wthr_generation_mscnfr_fns import generate_mscnfr_wthr
+from wthr_generation_mscnfr_fns import generate_mscnfr_wrld_wthr, generate_mscnfr_hwsd_wthr
 from wthr_generation_misc_fns import clean_empty_dirs
 
 WARNING_STR = '*** Warning *** '
@@ -472,7 +472,10 @@ class Form(QWidget):
         """
         C
         """
-        generate_mscnfr_wthr(self)
+        if self.w_use_hwsd_fn.isChecked():
+            generate_mscnfr_hwsd_wthr(self)
+        else:
+            generate_mscnfr_wrld_wthr(self)
 
         return
 

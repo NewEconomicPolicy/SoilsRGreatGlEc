@@ -21,12 +21,12 @@ from csv import writer, reader
 from time import time
 from PyQt5.QtWidgets import QApplication
 
-from wthr_generation_misc_fns import read_all_wthr_dsets, fetch_WrldClim_sngl_data, fetch_WrldClim_area_data
+from wthr_generation_misc_fns import read_all_wthr_dsets, read_hwsd_wthr_dsets
 from getClimGenNC import ClimGenNC
 from getClimGenFns import (fetch_WrldClim_data, fetch_WrldClim_NC_data, associate_climate,
                            open_wthr_NC_sets, get_wthr_nc_coords, join_hist_fut_to_sim_wthr)
 from thornthwaite import thornthwaite
-from glbl_ecsse_low_level_fns import update_wthr_progress
+from glbl_ecsse_low_level_fns import update_wthr_progress, check_cell_within_csv
 
 ERROR_STR = '*** Error *** '
 WARNING_STR = '*** Warning *** '
@@ -40,13 +40,93 @@ METRIC_DESCRIPS = {'precip': 'precip = total precipitation (mm)',
                     'tas': 'tave = near-surface average temperature (degrees Celsius)'}
 NMETRICS = len(METRIC_LIST)
 
-def generate_mscnfr_wthr(form):
+def generate_mscnfr_hwsd_wthr(form):
+    """
+    create 10 arc minute data
+    """
+    if hasattr(form, 'hwsd_mu_globals'):
+        bbox = form.hwsd_mu_globals.bbox
+    else:
+        print(WARNING_STR + 'No HWSD data available')
+        return
+
+    form.w_abandon.setCheckState(0)
+    max_cells = int(form.w_max_cells.text())
+    output_dir = join(form.w_out_dir.text(), 'hwsd')  # typically  G:\MscnfrOutpts\WorldClim'
+    strt_yr = int(form.w_sim_strt_yr.text())  # start and end year, typically 1981, 2080
+    end_yr = int(form.w_sim_end_yr.text())
+
+    # weather choice
+    # ==============
+    sim_strt_year = 2001
+    this_gcm = form.w_combo10w.currentText()
+    scnr = form.w_combo10.currentText()
+
+    fut_wthr_set = this_gcm + '_' + scnr
+    sim_end_year = form.wthr_sets[fut_wthr_set]['year_end']
+
+    region = 'HWSD'
+    crop_name = None
+    climgen = ClimGenNC(form, region, crop_name, sim_strt_year, sim_end_year, this_gcm, scnr)
+
+    hist_wthr_dsets, fut_wthr_dsets = open_wthr_NC_sets(climgen)
+    wthr_slices, ntime_steps, lats, lons = read_hwsd_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets,
+                                                                                        bbox, strt_yr, end_yr)
+
+    mess = 'Will generate {} csv files consisting of metrics'.format(len(METRIC_LIST))
+    print(mess + ' and a meteogrid file consisting of grid coordinates')
+
+    grid_size = climgen.hist_wthr_set_defn['resol_lon']
+    miscan_fobjs, writers = _open_csv_file_sets(METRIC_LIST + ['meteogrid'], output_dir, lats[0], lats[-1],
+                                                                    lons[0], lons[-1], grid_size, strt_yr, end_yr)
+
+    # for each location, where there is data, build set of data
+    # =========================================================
+    n_nodata, n_not_inside, n_with_data, ntotal = 4*[0]
+    last_time = time()
+
+    # create 10 arc minute world data
+    # ===============================
+    for lat_indx, lat in enumerate(lats):
+
+        for lon_indx, lon in enumerate(lons):
+            if not check_cell_within_csv(form.hwsd_mu_globals.data_frame, lat, lon):
+                n_not_inside += 1
+                continue
+
+            pettmp, data_flag = _fetch_wthr_data(wthr_slices, lat_indx, lon_indx)
+
+            # write data
+            # ==========
+            if data_flag:
+                n_with_data += 1
+                pettmp['meteogrid'] = list([lon, lat])
+                _write_mscnfr_out(pettmp, writers, ntime_steps)
+                if n_with_data >= max_cells:
+                    break
+            else:
+                n_nodata += 1
+
+            if n_with_data >= max_cells:
+                last_time = update_wthr_progress(last_time, n_with_data, n_nodata, ntotal, ntotal, ntotal, region)
+                break
+
+    # close netCDF and csv files
+    # ==========================
+    for var_name in METRIC_LIST + ['meteogrid']:
+        miscan_fobjs[var_name].close()
+
+    print('\nAll done - not inside: {}'.format(n_not_inside))
+
+    return
+
+def generate_mscnfr_wrld_wthr(form):
     """
     C
     """
     form.w_abandon.setCheckState(0)
     max_cells = int(form.w_max_cells.text())
-    output_dir = form.w_out_dir.text()  # typically  G:\MscnfrOutpts\WorldClim'
+    output_dir = join(form.w_out_dir.text(), 'wrld')   # typically  G:\MscnfrOutpts\WorldClim'
     strt_yr = int(form.w_sim_strt_yr.text())  # start and end year, typically 1981, 2080
     end_yr = int(form.w_sim_end_yr.text())
 
@@ -72,49 +152,45 @@ def generate_mscnfr_wthr(form):
     mess = 'Will generate {} csv files consisting of metrics'.format(len(METRIC_LIST))
     print(mess + ' and a meteogrid file consisting of grid coordinates')
 
-    lat_min, lat_max = 2*[None]
-    miscan_fobjs, writers = _open_csv_file_sets(METRIC_LIST + ['meteogrid'], output_dir, lat_min, lat_max)
-
+    lat_min = climgen.fut_wthr_set_defn['latitudes'][1]
+    lat_max = climgen.fut_wthr_set_defn['latitudes'][-2]
+    lon_min = climgen.fut_wthr_set_defn['longitudes'][1]
+    lon_max = climgen.fut_wthr_set_defn['longitudes'][-2]
+    grid_size = 0.5
+    miscan_fobjs, writers = _open_csv_file_sets(METRIC_LIST + ['meteogrid'], output_dir, lat_min, lat_max,
+                                                                        lon_min, lon_max, grid_size, strt_yr, end_yr)
     # for each location, where there is data, build set of data
     # =========================================================
     n_nodata, n_with_data, ntotal = 3*[0]
     last_time = time()
-    if form.w_use_hwsd_fn.isChecked():
 
-        # create 0.5 degree world data
-        # ============================
-        for lat_indx in range(1, nlats, 3):
-            lat = climgen.fut_wthr_set_defn['latitudes'][lat_indx]
+    # create 0.5 degree world data
+    # ============================
+    for lat_indx in range(1, nlats, 3):
+        lat = climgen.fut_wthr_set_defn['latitudes'][lat_indx]
 
-            for lon_indx in range(1, nlons, 3):
-                lon = climgen.fut_wthr_set_defn['longitudes'][lon_indx]
+        for lon_indx in range(1, nlons, 3):
+            lon = climgen.fut_wthr_set_defn['longitudes'][lon_indx]
 
-                pettmp, data_flag = _fetch_wthr_data(wthr_slices, lat_indx, lon_indx)
+            pettmp, data_flag = _fetch_wthr_data(wthr_slices, lat_indx, lon_indx)
 
-                # write data
-                # ==========
-                if data_flag:
-                    n_with_data += 1
-                    pettmp['meteogrid'] = list([lon, lat])
-                    write_mscnfr_out(pettmp, writers, ntime_steps)
-                    if n_with_data >= max_cells:
-                        break
-                else:
-                    n_nodata += 1
-
+            # write data
+            # ==========
+            if data_flag:
+                n_with_data += 1
+                pettmp['meteogrid'] = list([lon, lat])
+                _write_mscnfr_out(pettmp, writers, ntime_steps)
                 if n_with_data >= max_cells:
-                    last_time = update_wthr_progress(last_time, n_with_data, n_nodata, ntotal, ntotal, ntotal, region)
                     break
-        else:
-            # create 10 arc minute data
-            # =========================
-            if hasattr(form, 'hwsd_mu_globals'):
-                bbox = form.hwsd_mu_globals.bbox
             else:
-                print(WARNING_STR + 'No HWSD data available')
+                n_nodata += 1
 
-        # close netCDF and csv files
-        # ==========================
+            if n_with_data >= max_cells:
+                last_time = update_wthr_progress(last_time, n_with_data, n_nodata, ntotal, ntotal, ntotal, region)
+                break
+
+    # close netCDF and csv files
+    # ==========================
     for var_name in METRIC_LIST + ['meteogrid']:
         miscan_fobjs[var_name].close()
 
@@ -143,8 +219,8 @@ def _fetch_wthr_data(wthr_slices, lat_indx, lon_indx):
 
     return pettmp_ret, data_flag
 
-def _open_csv_file_sets(var_names, out_folder, lat_min, lat_max, lon_min = -180.0, lon_max = 180, grid_size = 0.5,
-            start_year = 1901, stop_year = 2019, out_suffx = '.txt', remove_flag = True):
+def _open_csv_file_sets(var_names, out_folder, lat_min, lat_max, lon_min, lon_max, grid_size,
+                                                 start_year, stop_year, out_suffx = '.txt', remove_flag = True):
     """
     write each variable to a separate file
     """
@@ -153,7 +229,7 @@ def _open_csv_file_sets(var_names, out_folder, lat_min, lat_max, lon_min = -180.
         return None, None
 
     header_recs = []
-    header_recs.append('GridSize    ' + str(round(grid_size,3)))
+    header_recs.append('GridSize    ' + str(round(grid_size,5)))
     header_recs.append('LongMin     ' + str(lon_min))
     header_recs.append('LongMax     ' + str(lon_max))
     header_recs.append('LatMin      ' + str(lat_min))
@@ -188,7 +264,7 @@ def _open_csv_file_sets(var_names, out_folder, lat_min, lat_max, lon_min = -180.
 
     return miscan_fobjs, writers
 
-def write_mscnfr_out(pettmp, writers, num_time_steps, meteogrid_flag = True):
+def _write_mscnfr_out(pettmp, writers, num_time_steps, meteogrid_flag = True):
     """
     write each variable to a separate file
     """

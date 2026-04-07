@@ -34,7 +34,9 @@ WARNING_STR = '*** Warning *** '
 ERROR_STR = '*** Error *** '
 
 def check_cell_within_csv(hwsd_mu_globals, lat, lon):
-
+    """
+    C
+    """
     gran_lat = round((90.0 - lat) * GRANULARITY)
     gran_lon = round((180.0 + lon) * GRANULARITY)
     aoi_chunk = hwsd_mu_globals.loc[(hwsd_mu_globals['gran_lat'] == gran_lat)

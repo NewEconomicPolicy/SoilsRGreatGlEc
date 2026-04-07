@@ -27,7 +27,7 @@ from _datetime import datetime
 from getClimGenNC import ClimGenNC
 from getClimGenFns import open_wthr_NC_sets
 
-from getClimGenFns import update_fetch_progress
+from getClimGenFns import update_fetch_progress, get_wthr_nc_coords
 
 NULL_VALUE = -9999
 GRANULARITY = 120
@@ -41,38 +41,30 @@ PERIOD_LIST = ['hist', 'fut']
 ALL_METRICS = ['prec','tave']
 METRIC_VARNAMES = {'precip': 'prec', 'tas': 'tave'}
 
-def clean_empty_dirs(form):
-    """
-    Remove empty directories
-    """
-    print('\n')
-    out_dir = form.setup['out_dir']
-    for period in PERIOD_LIST:
-        period_dir = join(out_dir, period)
-
-        nremoved, ndirs = 2 * [0]
-        fns = listdir(period_dir)
-        for fn in fns:
-            this_dir = join(period_dir, fn)
-            if isdir(this_dir):
-                ndirs += 1
-                nfiles = len(listdir(this_dir))
-                if nfiles == 0:
-                    rmdir(this_dir)
-                    nremoved += 1
-
-        print('Checked {} directories and removed {} empty ones from '.format(ndirs, nremoved) + period_dir)
-
-    return
-
-def read_all_wthr_smpl_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets):
+def read_hwsd_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets, bbox, strt_yr, end_yr):
     """
     get precipitation and temperature data for all times
     """
+    lon_ll, lat_ll, lon_ur, lat_ur = bbox
+    lat_ll_indx, lon_ll_indx = get_wthr_nc_coords(climgen.hist_wthr_set_defn, lat_ll, lon_ll)
+    lat_ur_indx, lon_ur_indx = get_wthr_nc_coords(climgen.hist_wthr_set_defn, lat_ur, lon_ur)
+
+    strt_yr_hist = climgen.hist_wthr_set_defn['year_start']
+    end_yr_hist = climgen.hist_wthr_set_defn['year_end']
+    try:
+        strt_indx_hist = (strt_yr - strt_yr_hist) * 12
+    except TypeError as err:
+        print(ERROR_STR + str(err))
+
+    strt_yr_fut = climgen.fut_wthr_set_defn['year_start']
+    strt_indx_fut = (end_yr_hist - strt_yr_fut + 1) * 12
+    end_indx_fut = (end_yr - strt_yr_fut + 1) * 12
+
     wthr_slices = {}
     for period in PERIOD_LIST:
         wthr_slices[period] = {}
 
+    slices_concat = {}
     for metric in METRIC_LIST:
 
         # history datasets
@@ -80,19 +72,27 @@ def read_all_wthr_smpl_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets):
         t1 = time()
         print('Reading historic data for metric ' + metric)
         varname = climgen.hist_wthr_set_defn[metric]
-        wthr_slices['hist'][metric] = hist_wthr_dsets[metric].variables[varname][:, :, :]
+        wthr_slices['hist'][metric] = hist_wthr_dsets[metric].variables[varname][strt_indx_hist:,
+                                                                lat_ll_indx:lat_ur_indx, lon_ll_indx:lon_ur_indx]
         t2 = time()
         print('Time taken: {}'.format(int(t2 -t1)) + ' for metric: ' + metric)
 
         print('Reading future data for metric ' + metric)
         varname = climgen.fut_wthr_set_defn[metric]
-        wthr_slices['fut'][metric] = fut_wthr_dsets[metric].variables[varname][:, :, :]
+        wthr_slices['fut'][metric] = fut_wthr_dsets[metric].variables[varname][strt_indx_fut:end_indx_fut,
+                                                                lat_ll_indx:lat_ur_indx, lon_ll_indx:lon_ur_indx]
         t3 = time()
         print('Time taken: {}'.format(int(t3 - t2)) + ' for metric: ' + metric)
 
-    return wthr_slices
+        slices_concat[metric] = concatenate([wthr_slices['hist'][metric], wthr_slices['fut'][metric]], axis=0)
 
-def read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets, strt_yr = 1981, end_yr = 2080):
+    ntime_steps = slices_concat[metric].shape[0]
+    lats = hist_wthr_dsets[metric].variables['lat'][lat_ll_indx:lat_ur_indx]
+    lons = hist_wthr_dsets[metric].variables['lon'][lon_ll_indx:lon_ur_indx]
+
+    return slices_concat, ntime_steps, lats, lons
+
+def read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets, strt_yr, end_yr):
     """
     get precipitation and temperature data for all times
     """
@@ -134,6 +134,33 @@ def read_all_wthr_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets, strt_yr = 1981
     ntime_steps = slices_concat[metric].shape[0]
 
     return slices_concat, ntime_steps
+
+def read_all_wthr_smpl_dsets(climgen, hist_wthr_dsets, fut_wthr_dsets):
+    """
+    get precipitation and temperature data for all times
+    """
+    wthr_slices = {}
+    for period in PERIOD_LIST:
+        wthr_slices[period] = {}
+
+    for metric in METRIC_LIST:
+
+        # history datasets
+        # ===============
+        t1 = time()
+        print('Reading historic data for metric ' + metric)
+        varname = climgen.hist_wthr_set_defn[metric]
+        wthr_slices['hist'][metric] = hist_wthr_dsets[metric].variables[varname][:, :, :]
+        t2 = time()
+        print('Time taken: {}'.format(int(t2 -t1)) + ' for metric: ' + metric)
+
+        print('Reading future data for metric ' + metric)
+        varname = climgen.fut_wthr_set_defn[metric]
+        wthr_slices['fut'][metric] = fut_wthr_dsets[metric].variables[varname][:, :, :]
+        t3 = time()
+        print('Time taken: {}'.format(int(t3 - t2)) + ' for metric: ' + metric)
+
+    return wthr_slices
 
 def fetch_WrldClim_sngl_data(lgr, lat, lon, wthr_slices, lat_indx, lon_indx, hist_flag=False):
     """
@@ -243,3 +270,26 @@ def _generate_mnthly_atimes(fut_start_year, num_months):
             year += 1
 
     return atimes, atimes_strt, atimes_end
+def clean_empty_dirs(form):
+    """
+    Remove empty directories
+    """
+    print('\n')
+    out_dir = form.setup['out_dir']
+    for period in PERIOD_LIST:
+        period_dir = join(out_dir, period)
+
+        nremoved, ndirs = 2 * [0]
+        fns = listdir(period_dir)
+        for fn in fns:
+            this_dir = join(period_dir, fn)
+            if isdir(this_dir):
+                ndirs += 1
+                nfiles = len(listdir(this_dir))
+                if nfiles == 0:
+                    rmdir(this_dir)
+                    nremoved += 1
+
+        print('Checked {} directories and removed {} empty ones from '.format(ndirs, nremoved) + period_dir)
+
+    return
