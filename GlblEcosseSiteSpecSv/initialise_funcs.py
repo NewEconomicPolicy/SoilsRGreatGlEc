@@ -782,14 +782,17 @@ def read_wthr_config_file(form):
     # reset widgets associated with the HWSD file
     # ===========================================
     hwsd_csv_fname = config[grp]['hwsdCsvFname']
-    if hwsd_csv_fname != '':
+    if hwsd_csv_fname is None:
+        print(WARNING_STR + 'HWSD csv file is None')
+        hwsd_csv_fname = ''
+    elif hwsd_csv_fname != '':
         if isfile(hwsd_csv_fname):
             # read CSV file using pandas and create obj
+            # =========================================
             form.hwsd_mu_globals = HWSD_mu_globals_csv(form, hwsd_csv_fname)
             form.w_hwsd_bbox.setText(form.hwsd_mu_globals.aoi_label)
         else:
-            print('HWSD csv file ' + hwsd_csv_fname + ' does not exist')
-            hwsd_csv_fname = ''
+            print(WARNING_STR + 'HWSD csv file ' + hwsd_csv_fname + ' does not exist')
 
     if hwsd_csv_fname == '':
         form.hwsd_mu_globals = None
@@ -959,6 +962,9 @@ def write_wthr_config_file(form):
         ur_lat = 0.0
     form.setup['bbox'] = list([ll_lon, ll_lat, ur_lon, ur_lat])
 
+    sim_strt_yr = form.w_sim_strt_yr.text()
+    sim_end_yr = form.w_sim_end_yr.text()
+
     config = {
         'cmnGUI': {
             'cruStrtYr': form.w_combo09s.currentIndex(),
@@ -979,8 +985,8 @@ def write_wthr_config_file(form):
             'hwsdCsvFname': form.w_hwsd_fn.text(),
             'maxCells': form.w_max_cells.text(),
             'outDir': form.w_out_dir.text(),
-            'simStrtYr': form.w_sim_strt_yr.text(),
-            'simEndYr': form.w_sim_end_yr.text(),
+            'simStrtYr': sim_strt_yr,
+            'simEndYr': sim_end_yr,
             'yearFrom': form.w_yr_from.text(),
             'regionIndx': form.w_combo00a.currentIndex(),
             'wthrRsrce': form.w_combo10w.currentText()
@@ -999,4 +1005,3 @@ def write_wthr_config_file(form):
             print(str(err))
 
     return
-
