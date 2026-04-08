@@ -17,7 +17,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QLabel, QComboBox, QRadioButton, QButtonGroup, QPushButton, QCheckBox
 
 from shape_funcs import calculate_area, format_bbox
-from initialise_funcs import write_config_file, write_wthr_config_file
+from initialise_funcs import write_config_file
 
 resolutions = {120:'30"', 30:'2\'', 20:'3\'', 10:'6\'', 6:'10\'', 4:'15\'', 3:'20\'', 2:'30\''}
 reverse_resols = {}
@@ -324,14 +324,11 @@ def grid_coarseness(form, grid, irow):
 
     return irow
 
-def exit_clicked(form, write_config_flag = True, wthr_only_flag = False):
+def exit_clicked(form, write_config_flag = True):
 
     # write last GUI selections
     if write_config_flag:
-        if wthr_only_flag:
-            write_wthr_config_file(form)
-        else:
-            write_config_file(form)
+        write_config_file(form)
 
     # close various files
     if hasattr(form, 'fobjs'):
