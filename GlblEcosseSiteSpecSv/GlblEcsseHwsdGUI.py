@@ -455,6 +455,7 @@ class Form(QWidget):
         sims_dir = self.setup['sims_dir']
 
         fs_dirs = listdir(sims_dir)
+        n_dirs = 0
         for fn in fs_dirs:
             this_dir = join(sims_dir, fn)
             if isdir(this_dir):
@@ -462,6 +463,10 @@ class Form(QWidget):
                 if len(res) == 2:
                     if res[1] in wthr_scenarios:
                         print('\tentities in ' + fn + ' ' + str(len(listdir(this_dir))))
+                        n_dirs += 1
+
+        if n_dirs == 0:
+            print(WARNING_STR + 'No scenarios in ' + sims_dir)
 
         return
 
